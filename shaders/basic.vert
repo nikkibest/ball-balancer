@@ -1,0 +1,36 @@
+#version 450 core
+
+/**
+ * Basic Vertex Shader
+ *
+ * Transforms vertices using MVP matrix and passes data to fragment shader.
+ * Supports simple directional lighting calculation.
+ */
+
+layout(location = 0) in vec3 aPosition;  // Vertex position
+layout(location = 1) in vec3 aNormal;    // Vertex normal
+layout(location = 2) in vec3 aColor;     // Vertex color
+
+// Uniforms
+uniform mat4 uMVP;          // Model-View-Projection matrix
+uniform mat4 uModel;        // Model matrix (for normals)
+uniform mat3 uNormalMatrix; // Normal matrix (transpose(inverse(model)))
+
+// Outputs to fragment shader
+out vec3 vPosition;  // World-space position
+out vec3 vNormal;    // World-space normal
+out vec3 vColor;     // Vertex color
+
+void main() {
+    // Transform position to clip space
+    gl_Position = uMVP * vec4(aPosition, 1.0);
+
+    // Pass world-space position
+    vPosition = vec3(uModel * vec4(aPosition, 1.0));
+
+    // Transform normal to world space
+    vNormal = normalize(uNormalMatrix * aNormal);
+
+    // Pass color through
+    vColor = aColor;
+}

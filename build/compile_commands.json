@@ -1,0 +1,296 @@
+[
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/imgui.dir/external/imgui/imgui.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui.cpp",
+  "output": "CMakeFiles/imgui.dir/external/imgui/imgui.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/imgui.dir/external/imgui/imgui_demo.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui_demo.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui_demo.cpp",
+  "output": "CMakeFiles/imgui.dir/external/imgui/imgui_demo.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/imgui.dir/external/imgui/imgui_draw.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui_draw.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui_draw.cpp",
+  "output": "CMakeFiles/imgui.dir/external/imgui/imgui_draw.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/imgui.dir/external/imgui/imgui_tables.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui_tables.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui_tables.cpp",
+  "output": "CMakeFiles/imgui.dir/external/imgui/imgui_tables.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/imgui.dir/external/imgui/imgui_widgets.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui_widgets.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/imgui_widgets.cpp",
+  "output": "CMakeFiles/imgui.dir/external/imgui/imgui_widgets.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/imgui.dir/external/imgui/backends/imgui_impl_glfw.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends/imgui_impl_glfw.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends/imgui_impl_glfw.cpp",
+  "output": "CMakeFiles/imgui.dir/external/imgui/backends/imgui_impl_glfw.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/imgui.dir/external/imgui/backends/imgui_impl_opengl3.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends/imgui_impl_opengl3.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends/imgui_impl_opengl3.cpp",
+  "output": "CMakeFiles/imgui.dir/external/imgui/backends/imgui_impl_opengl3.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/implot.dir/external/implot/implot.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot/implot.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot/implot.cpp",
+  "output": "CMakeFiles/implot.dir/external/implot/implot.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -std=c++17 -o CMakeFiles/implot.dir/external/implot/implot_items.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot/implot_items.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot/implot_items.cpp",
+  "output": "CMakeFiles/implot.dir/external/implot/implot_items.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/cc  -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include  -o CMakeFiles/glad.dir/external/glad/src/glad.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/src/glad.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/src/glad.c",
+  "output": "CMakeFiles/glad.dir/external/glad/src/glad.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/core/application.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/core/application.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/core/application.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/core/application.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/physics/simulator.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/physics/simulator.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/physics/simulator.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/physics/simulator.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/control/pid_controller.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/control/pid_controller.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/control/pid_controller.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/control/pid_controller.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/control/state_estimator.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/control/state_estimator.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/control/state_estimator.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/control/state_estimator.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/math/matrix_utils.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/math/matrix_utils.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/math/matrix_utils.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/math/matrix_utils.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/rendering/renderer.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/rendering/renderer.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/rendering/renderer.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/rendering/renderer.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/rendering/shader.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/rendering/shader.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/rendering/shader.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/rendering/shader.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/rendering/camera.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/rendering/camera.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/rendering/camera.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/rendering/camera.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/gui/control_panel.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/gui/control_panel.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/gui/control_panel.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/gui/control_panel.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/gui/main_window.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/gui/main_window.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/gui/main_window.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/gui/main_window.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/visualization/real_time_plotter.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/visualization/real_time_plotter.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/visualization/real_time_plotter.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/visualization/real_time_plotter.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/visualization/data_manager.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/visualization/data_manager.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/visualization/data_manager.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/visualization/data_manager.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build",
+  "command": "/usr/bin/c++ -DIMGUI_USER_CONFIG=\\\"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imconfig.h\\\" -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/eigen -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glad/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/imgui/backends -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/implot -std=c++17 -Wall -Wextra -Wpedantic -Wno-maybe-uninitialized -O2 -o CMakeFiles/ball_balancer.dir/src/main.cpp.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/main.cpp",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/src/main.cpp",
+  "output": "CMakeFiles/ball_balancer.dir/src/main.cpp.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/context.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/context.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/context.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/context.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/init.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/init.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/init.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/init.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/input.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/input.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/input.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/input.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/monitor.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/monitor.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/monitor.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/monitor.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/platform.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/platform.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/platform.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/platform.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/vulkan.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/vulkan.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/vulkan.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/vulkan.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/window.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/window.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/window.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/window.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/egl_context.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/egl_context.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/egl_context.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/egl_context.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/osmesa_context.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/osmesa_context.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/osmesa_context.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/osmesa_context.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_init.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/null_init.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/null_init.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/null_init.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_monitor.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/null_monitor.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/null_monitor.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/null_monitor.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_window.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/null_window.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/null_window.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/null_window.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/null_joystick.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/null_joystick.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/null_joystick.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/null_joystick.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_module.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/posix_module.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/posix_module.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/posix_module.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_time.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/posix_time.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/posix_time.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/posix_time.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_thread.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/posix_thread.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/posix_thread.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/posix_thread.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_init.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/x11_init.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/x11_init.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/x11_init.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_monitor.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/x11_monitor.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/x11_monitor.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/x11_monitor.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/x11_window.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/x11_window.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/x11_window.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/x11_window.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/xkb_unicode.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/xkb_unicode.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/xkb_unicode.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/xkb_unicode.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/glx_context.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/glx_context.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/glx_context.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/glx_context.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/wl_init.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/wl_init.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/wl_init.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/wl_init.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/wl_monitor.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/wl_monitor.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/wl_monitor.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/wl_monitor.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/wl_window.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/wl_window.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/wl_window.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/wl_window.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/linux_joystick.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/linux_joystick.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/linux_joystick.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/linux_joystick.c.o"
+},
+{
+  "directory": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src",
+  "command": "/usr/bin/cc -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -D_GLFW_WAYLAND -D_GLFW_X11 -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/include -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src -I/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src -std=c99 -fPIC -Wall -o CMakeFiles/glfw.dir/posix_poll.c.o -c /home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/posix_poll.c",
+  "file": "/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/external/glfw/src/posix_poll.c",
+  "output": "external/glfw/src/CMakeFiles/glfw.dir/posix_poll.c.o"
+}
+]

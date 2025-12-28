@@ -1,0 +1,10 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/cmake_install.cmake",
+		"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/cmake_install.cmake",
+		"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/src/cmake_install.cmake",
+		"/home/nds/Projects/IDA_EmbeddedDevWithAI/ball-balancer/build/external/glfw/docs/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
