@@ -185,33 +185,47 @@ int Shader::get_uniform_location(const std::string& name) const {
 // ============================================================================
 
 void Shader::set_uniform(const std::string& name, bool value) const {
-    glUniform1i(get_uniform_location(name), static_cast<int>(value));
+    int location = get_uniform_location(name);
+    if (location == -1) return;
+    glUniform1i(location, static_cast<int>(value));
 }
 
 void Shader::set_uniform(const std::string& name, int value) const {
-    glUniform1i(get_uniform_location(name), value);
+    int location = get_uniform_location(name);
+    if (location == -1) return;
+    glUniform1i(location, value);
 }
 
 void Shader::set_uniform(const std::string& name, float value) const {
-    glUniform1f(get_uniform_location(name), value);
+    int location = get_uniform_location(name);
+    if (location == -1) return;
+    glUniform1f(location, value);
 }
 
 void Shader::set_uniform(const std::string& name, const Eigen::Vector3f& value) const {
-    glUniform3fv(get_uniform_location(name), 1, value.data());
+    int location = get_uniform_location(name);
+    if (location == -1) return;
+    glUniform3fv(location, 1, value.data());
 }
 
 void Shader::set_uniform(const std::string& name, const Eigen::Vector4f& value) const {
-    glUniform4fv(get_uniform_location(name), 1, value.data());
+    int location = get_uniform_location(name);
+    if (location == -1) return;
+    glUniform4fv(location, 1, value.data());
 }
 
 void Shader::set_uniform(const std::string& name, const Eigen::Matrix3f& value) const {
     // Eigen matrices are column-major, OpenGL expects column-major, so no transpose
-    glUniformMatrix3fv(get_uniform_location(name), 1, false, value.data());
+    int location = get_uniform_location(name);
+    if (location == -1) return;
+    glUniformMatrix3fv(location, 1, false, value.data());
 }
 
 void Shader::set_uniform(const std::string& name, const Eigen::Matrix4f& value) const {
     // Eigen matrices are column-major, OpenGL expects column-major, so no transpose
-    glUniformMatrix4fv(get_uniform_location(name), 1, false, value.data());
+    int location = get_uniform_location(name);
+    if (location == -1) return;
+    glUniformMatrix4fv(location, 1, false, value.data());
 }
 
 } // namespace ball_balancer

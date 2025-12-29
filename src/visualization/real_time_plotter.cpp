@@ -7,7 +7,7 @@
  * @brief Implementation of real-time plotter
  *
  * Implements ImPlot-based plotting following best practices:
- * - Always call EndPlot() even if BeginPlot() returns false
+ * - Only call EndPlot() if BeginPlot() returns true (unlike ImGui::Begin/End)
  * - Use ring buffers for efficient streaming data
  * - Downsample if needed for performance
  * - Use appropriate plot types for different data
@@ -111,10 +111,9 @@ void RealTimePlotter::render_trajectory() {
     // X vs Y trajectory plot (not time series)
     float plot_height = 300.0f;
 
-    // IMPORTANT: Always call EndPlot() even if BeginPlot() returns false
+    // IMPORTANT: Only call EndPlot() if BeginPlot() returns true (unlike ImGui::Begin/End)
     if (!ImPlot::BeginPlot("Ball Trajectory", ImVec2(-1, plot_height),
                            ImPlotFlags_Equal)) {
-        ImPlot::EndPlot();
         return;
     }
 
@@ -208,7 +207,6 @@ void RealTimePlotter::render_position_time() {
 
     // X position vs time
     if (!ImPlot::BeginPlot("X Position vs Time", ImVec2(-1, plot_height))) {
-        ImPlot::EndPlot();
         return;
     }
 
@@ -234,7 +232,6 @@ void RealTimePlotter::render_position_time() {
 
     // Y position vs time
     if (!ImPlot::BeginPlot("Y Position vs Time", ImVec2(-1, plot_height))) {
-        ImPlot::EndPlot();
         return;
     }
 
@@ -289,7 +286,6 @@ void RealTimePlotter::render_control_signals() {
 
     // Table tilt angles
     if (!ImPlot::BeginPlot("Table Tilt Angles", ImVec2(-1, plot_height))) {
-        ImPlot::EndPlot();
         return;
     }
 
@@ -359,7 +355,6 @@ void RealTimePlotter::render_error() {
 
     // Position error magnitude
     if (!ImPlot::BeginPlot("Position Error", ImVec2(-1, plot_height))) {
-        ImPlot::EndPlot();
         return;
     }
 

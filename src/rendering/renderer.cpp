@@ -262,7 +262,6 @@ void Renderer::render(const StateVector& state) {
         basic_shader_->set_uniform("uNormalMatrix", normal_matrix);
         basic_shader_->set_uniform("uColor", Eigen::Vector3f(0.7f, 0.5f, 0.3f));  // Wood color
         basic_shader_->set_uniform("uLightPos", Eigen::Vector3f(2.0f, 3.0f, 2.0f));
-        basic_shader_->set_uniform("uViewPos", camera_.get_position());
 
         table_mesh_->bind();
         glDrawArrays(GL_TRIANGLES, 0, table_mesh_->get_vertex_count());
@@ -294,7 +293,6 @@ void Renderer::render(const StateVector& state) {
         basic_shader_->set_uniform("uNormalMatrix", normal_matrix);
         basic_shader_->set_uniform("uColor", Eigen::Vector3f(0.9f, 0.1f, 0.1f));  // Red ball
         basic_shader_->set_uniform("uLightPos", Eigen::Vector3f(2.0f, 3.0f, 2.0f));
-        basic_shader_->set_uniform("uViewPos", camera_.get_position());
 
         ball_mesh_->bind();
         glDrawArrays(GL_TRIANGLES, 0, ball_mesh_->get_vertex_count());

@@ -1,0 +1,55 @@
+# Build directory
+build/
+
+# Compiled binaries
+ball_balancer
+ball-balancer
+ball_balancer.exe
+ball-balancer.exe
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+CTestTestfile.cmake
+compile_commands.json
+Makefile
+
+# Static libraries
+*.a
+*.lib
+
+# Shared libraries
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Object files
+*.o
+*.o.d
+*.obj
+
+# ImGui runtime config
+imgui.ini
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Log files
+*.log
+
+# Core dumps
+core

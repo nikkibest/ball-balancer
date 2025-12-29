@@ -16,14 +16,15 @@ in vec3 vColor;     // Vertex color
 out vec4 FragColor;
 
 // Lighting uniforms
-uniform vec3 uLightDir = vec3(0.5, 1.0, 0.5);  // Directional light direction
+uniform vec3 uColor;                            // Object color
+uniform vec3 uLightPos;                         // Light position
 uniform vec3 uLightColor = vec3(1.0, 1.0, 1.0); // Light color
 uniform float uAmbient = 0.3;                   // Ambient light strength
 
 void main() {
     // Normalize inputs
     vec3 normal = normalize(vNormal);
-    vec3 lightDir = normalize(uLightDir);
+    vec3 lightDir = normalize(uLightPos - vPosition);
 
     // Diffuse lighting (Lambertian)
     float diff = max(dot(normal, lightDir), 0.0);
@@ -32,5 +33,5 @@ void main() {
     vec3 lighting = (uAmbient + (1.0 - uAmbient) * diff) * uLightColor;
 
     // Final color
-    FragColor = vec4(vColor * lighting, 1.0);
+    FragColor = vec4(uColor * lighting, 1.0);
 }

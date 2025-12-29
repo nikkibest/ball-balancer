@@ -8,8 +8,8 @@
 
 out vec4 FragColor;
 
-uniform vec4 uColor = vec4(0.5, 0.5, 0.5, 1.0);  // Grid line color (gray)
+uniform vec3 uColor;  // Grid line color
 
 void main() {
-    FragColor = uColor;
+    FragColor = vec4(uColor, 1.0);
 }
