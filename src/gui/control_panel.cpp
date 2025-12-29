@@ -190,7 +190,7 @@ void ControlPanel::render_pid_tuning(PIDController& controller) {
             // Reset to defaults
             if (ImGui::Button("Reset to Default##x", ImVec2(-FLT_MIN, 0))) {
                 PIDGains default_gains;
-                default_gains.Kp = 2.0;
+                default_gains.Kp = 1.0;
                 default_gains.Ki = 0.5;
                 default_gains.Kd = 0.2;
                 controller.set_x_gains(default_gains);
@@ -220,7 +220,7 @@ void ControlPanel::render_pid_tuning(PIDController& controller) {
             // Reset to defaults
             if (ImGui::Button("Reset to Default##y", ImVec2(-FLT_MIN, 0))) {
                 PIDGains default_gains;
-                default_gains.Kp = 2.0;
+                default_gains.Kp = 1.0;
                 default_gains.Ki = 0.5;
                 default_gains.Kd = 0.2;
                 controller.set_y_gains(default_gains);

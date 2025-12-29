@@ -162,7 +162,7 @@ PIDController::PIDController(const SystemParameters& params)
     // Initialize with default gains
     // User should tune these based on system response
     PIDGains default_gains;
-    default_gains.Kp = 2.0;   // Moderate proportional gain
+    default_gains.Kp = 1.0;   // Moderate proportional gain
     default_gains.Ki = 0.5;   // Small integral for steady-state error
     default_gains.Kd = 0.2;   // Small derivative for damping
 
