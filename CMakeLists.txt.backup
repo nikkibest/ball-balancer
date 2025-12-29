@@ -1,0 +1,242 @@
+cmake_minimum_required(VERSION 3.15)
+project(BallBalancerWeb VERSION 1.0.0 LANGUAGES C CXX)
+
+# ============================================================================
+# Emscripten-Specific Configuration
+# ============================================================================
+
+if(NOT EMSCRIPTEN)
+    message(FATAL_ERROR "This CMakeLists.txt is for Emscripten builds only. Use emcmake cmake.")
+endif()
+
+# C++ Standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Export compile commands
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Set executable suffix to .html for automatic HTML generation
+set(CMAKE_EXECUTABLE_SUFFIX ".html")
+
+# ============================================================================
+# Emscripten Compiler and Linker Flags
+# ============================================================================
+
+# Compiler flags for all targets
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+    -s USE_WEBGL2=1 \
+    -s FULL_ES3=1 \
+    -s USE_GLFW=3 \
+    -s ALLOW_MEMORY_GROWTH=1 \
+    -s WASM=1 \
+    -s DISABLE_EXCEPTION_CATCHING=0 \
+    -Wall -Wextra -Wpedantic \
+    -Wno-unused-parameter"
+)
+
+# Optimization flags (use -O2 for development, -O3 for production)
+if(CMAKE_BUILD_TYPE MATCHES Release)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -DNDEBUG")
+    set(OPTIMIZATION_LEVEL "-O3")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -g")
+    set(OPTIMIZATION_LEVEL "-O2")
+endif()
+
+# ============================================================================
+# Dependencies
+# ============================================================================
+
+# Eigen3 - Linear algebra library (header-only from external/)
+set(EIGEN3_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/eigen)
+message(STATUS "Using Eigen3 from: ${EIGEN3_INCLUDE_DIR}")
+
+# Boost - Optional (header-only)
+find_package(Boost 1.65)
+if(Boost_FOUND)
+    message(STATUS "Found Boost: ${Boost_INCLUDE_DIRS}")
+else()
+    message(STATUS "Boost not found - some features may be unavailable")
+    set(Boost_INCLUDE_DIRS "")
+endif()
+
+# ============================================================================
+# External Libraries for Emscripten
+# ============================================================================
+
+# GLFW is provided by Emscripten via -s USE_GLFW=3
+# No need to build it separately
+
+# ImGui - Build for Emscripten
+set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui)
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
+add_library(imgui STATIC ${IMGUI_SOURCES})
+target_include_directories(imgui PUBLIC
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
+    ${CMAKE_CURRENT_SOURCE_DIR}/external
+)
+target_compile_definitions(imgui PUBLIC
+    IMGUI_USER_CONFIG="${CMAKE_CURRENT_SOURCE_DIR}/external/imconfig.h"
+    IMGUI_IMPL_OPENGL_ES3
+)
+
+# ImPlot - Build for Emscripten
+set(IMPLOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/implot)
+set(IMPLOT_SOURCES
+    ${IMPLOT_DIR}/implot.cpp
+    ${IMPLOT_DIR}/implot_items.cpp
+)
+
+add_library(implot STATIC ${IMPLOT_SOURCES})
+target_include_directories(implot PUBLIC
+    ${IMPLOT_DIR}
+    ${IMGUI_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/external
+)
+target_link_libraries(implot PUBLIC imgui)
+
+# GLAD - OpenGL loader (for WebGL we use Emscripten's GL headers)
+# Create a dummy glad library or exclude it for web builds
+add_library(glad INTERFACE)
+
+# ============================================================================
+# Source Files
+# ============================================================================
+
+set(BALL_BALANCER_SOURCES
+    # Core
+    src/core/application.cpp
+
+    # Physics
+    src/physics/simulator.cpp
+
+    # Control
+    src/control/pid_controller.cpp
+    src/control/state_estimator.cpp
+
+    # Math
+    src/math/matrix_utils.cpp
+
+    # Rendering
+    src/rendering/renderer.cpp
+    src/rendering/shader.cpp
+    src/rendering/camera.cpp
+
+    # GUI
+    src/gui/control_panel.cpp
+    src/gui/main_window.cpp
+
+    # Visualization
+    src/visualization/real_time_plotter.cpp
+    src/visualization/data_manager.cpp
+
+    # Main entry point (will be modified for web)
+    src/main.cpp
+)
+
+# ============================================================================
+# Main Executable
+# ============================================================================
+
+add_executable(ball_balancer ${BALL_BALANCER_SOURCES})
+
+target_include_directories(ball_balancer PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/external
+    ${EIGEN3_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS}
+)
+
+target_link_libraries(ball_balancer PRIVATE
+    imgui
+    implot
+    glad
+)
+
+# Link Boost if found
+if(Boost_FOUND)
+    target_link_libraries(ball_balancer PRIVATE Boost::boost)
+endif()
+
+# ============================================================================
+# Emscripten-Specific Link Options
+# ============================================================================
+
+# Link flags for Emscripten
+set(EMSCRIPTEN_LINK_FLAGS
+    # WebGL/GLFW support
+    "SHELL:-s USE_WEBGL2=1"
+    "SHELL:-s FULL_ES3=1"
+    "SHELL:-s USE_GLFW=3"
+
+    # Memory settings
+    "SHELL:-s ALLOW_MEMORY_GROWTH=1"
+    "SHELL:-s INITIAL_MEMORY=128MB"
+    "SHELL:-s STACK_SIZE=5MB"
+
+    # WASM settings
+    "SHELL:-s WASM=1"
+
+    # Exception handling (needed for C++ exceptions)
+    "SHELL:-s DISABLE_EXCEPTION_CATCHING=0"
+
+    # Main loop handling
+    "SHELL:-s NO_EXIT_RUNTIME=1"
+
+    # Optimization
+    "${OPTIMIZATION_LEVEL}"
+
+    # Preload shader files into virtual filesystem
+    "--preload-file ${CMAKE_CURRENT_SOURCE_DIR}/shaders@/shaders"
+
+    # Export functions for JavaScript interaction
+    "SHELL:-s EXPORTED_RUNTIME_METHODS=['ccall','cwrap']"
+
+    # Assertions (disable in release for smaller size)
+    "SHELL:-s ASSERTIONS=$<IF:$<CONFIG:Release>,0,1>"
+
+    # File system support
+    "SHELL:-s FORCE_FILESYSTEM=1"
+
+    # Minification for release builds
+    $<$<CONFIG:Release>:--closure 1>
+)
+
+target_link_options(ball_balancer PRIVATE ${EMSCRIPTEN_LINK_FLAGS})
+
+# Additional compiler options
+target_compile_options(ball_balancer PRIVATE
+    -Wno-maybe-uninitialized  # Suppress false positives from Eigen
+)
+
+# ============================================================================
+# Documentation
+# ============================================================================
+
+message(STATUS "")
+message(STATUS "Ball Balancer Web Build Configuration:")
+message(STATUS "  Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "  C++ standard: C++${CMAKE_CXX_STANDARD}")
+message(STATUS "  Emscripten: ${EMSCRIPTEN}")
+message(STATUS "  Optimization: ${OPTIMIZATION_LEVEL}")
+message(STATUS "")
+message(STATUS "Build Instructions:")
+message(STATUS "  1. mkdir build-web && cd build-web")
+message(STATUS "  2. emcmake cmake -DCMAKE_BUILD_TYPE=Release -f ../CMakeLists.web.txt ..")
+message(STATUS "  3. emmake make -j8")
+message(STATUS "  4. python -m http.server 8000")
+message(STATUS "  5. Open http://localhost:8000/ball_balancer.html")
+message(STATUS "")

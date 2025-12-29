@@ -3,8 +3,13 @@
 #include <sstream>
 #include <iostream>
 
-// Use GLAD for OpenGL function loading
-#include <glad/glad.h>
+// Use GLAD for OpenGL function loading (desktop) or GLES3 (Emscripten)
+#ifdef __EMSCRIPTEN__
+    #include <GLES3/gl3.h>
+    #include <emscripten.h>
+#else
+    #include <glad/glad.h>
+#endif
 
 /**
  * @file shader.cpp
@@ -24,25 +29,50 @@ namespace ball_balancer {
 Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
     : program_id_(0)
 {
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[SHADER] Initializing shader: vertex=%s, fragment=%s",
+                   vertex_path.c_str(), fragment_path.c_str());
+#endif
+    std::cout << "[SHADER] Initializing shader: vertex=" << vertex_path
+              << ", fragment=" << fragment_path << std::endl;
+
     // Load shader sources from files
     std::string vertex_source = load_shader_source(vertex_path);
     std::string fragment_source = load_shader_source(fragment_path);
 
     if (vertex_source.empty() || fragment_source.empty()) {
+#ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_ERROR, "[SHADER] ERROR: Shader source files not found or empty!");
+#endif
         std::cerr << "ERROR::SHADER::FILE_NOT_FOUND" << std::endl;
         return;
     }
+
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[SHADER] Loaded vertex shader (%d bytes), fragment shader (%d bytes)",
+                   (int)vertex_source.size(), (int)fragment_source.size());
+#endif
+    std::cout << "[SHADER] Loaded vertex shader (" << vertex_source.size()
+              << " bytes), fragment shader (" << fragment_source.size() << " bytes)" << std::endl;
 
     // Compile shaders
     unsigned int vertex_id = compile_shader(vertex_source, GL_VERTEX_SHADER);
     unsigned int fragment_id = compile_shader(fragment_source, GL_FRAGMENT_SHADER);
 
     if (vertex_id == 0 || fragment_id == 0) {
+#ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_ERROR, "[SHADER] ERROR: Shader compilation failed!");
+#endif
         // Compilation failed - cleanup
         if (vertex_id != 0) glDeleteShader(vertex_id);
         if (fragment_id != 0) glDeleteShader(fragment_id);
         return;
     }
+
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[SHADER] Shaders compiled successfully. Linking program...");
+#endif
+    std::cout << "[SHADER] Shaders compiled successfully. Linking program..." << std::endl;
 
     // Link program
     program_id_ = link_program(vertex_id, fragment_id);
@@ -52,7 +82,15 @@ Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
     glDeleteShader(fragment_id);
 
     if (program_id_ == 0) {
+#ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_ERROR, "[SHADER] ERROR: Program linking failed!");
+#endif
         std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << std::endl;
+    } else {
+#ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_CONSOLE, "[SHADER] Program linked successfully! ID=%d", program_id_);
+#endif
+        std::cout << "[SHADER] Program linked successfully! ID=" << program_id_ << std::endl;
     }
 }
 
@@ -92,13 +130,22 @@ void Shader::use() const {
 std::string Shader::load_shader_source(const std::string& path) const {
     std::ifstream file(path);
     if (!file.is_open()) {
+#ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_ERROR, "[SHADER] ERROR: Failed to open shader file: %s", path.c_str());
+#endif
         std::cerr << "ERROR::SHADER::FILE_NOT_FOUND: " << path << std::endl;
         return "";
     }
 
     std::stringstream buffer;
     buffer << file.rdbuf();
-    return buffer.str();
+    std::string source = buffer.str();
+
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[SHADER] Loaded shader file: %s (%d bytes)", path.c_str(), (int)source.size());
+#endif
+
+    return source;
 }
 
 unsigned int Shader::compile_shader(const std::string& source, unsigned int type) const {
@@ -122,8 +169,13 @@ unsigned int Shader::compile_shader(const std::string& source, unsigned int type
         std::string info_log(log_length, ' ');
         glGetShaderInfoLog(shader_id, log_length, nullptr, &info_log[0]);
 
+        const char* shader_type = (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT");
+#ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_ERROR, "[SHADER] %s SHADER COMPILATION FAILED:\n%s",
+                       shader_type, info_log.c_str());
+#endif
         std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n"
-                  << "Type: " << (type == GL_VERTEX_SHADER ? "VERTEX" : "FRAGMENT") << "\n"
+                  << "Type: " << shader_type << "\n"
                   << info_log << std::endl;
 
         glDeleteShader(shader_id);
@@ -156,6 +208,9 @@ unsigned int Shader::link_program(unsigned int vertex_id, unsigned int fragment_
         std::string info_log(log_length, ' ');
         glGetProgramInfoLog(program_id, log_length, nullptr, &info_log[0]);
 
+#ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_ERROR, "[SHADER] PROGRAM LINKING FAILED:\n%s", info_log.c_str());
+#endif
         std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
                   << info_log << std::endl;
 

@@ -2,6 +2,14 @@
 #include <cmath>
 #include <iostream>
 
+// Use GLAD for OpenGL function loading (desktop) or GLES3 (Emscripten)
+#ifdef __EMSCRIPTEN__
+    #include <GLES3/gl3.h>
+    #include <emscripten.h>
+#else
+    #include <glad/glad.h>
+#endif
+
 /**
  * @file renderer.cpp
  * @brief Implementation of OpenGL renderer
@@ -16,37 +24,6 @@
  */
 
 namespace ball_balancer {
-
-// Forward declarations for OpenGL functions (placeholders)
-extern "C" {
-    void glGenVertexArrays(int n, unsigned int* arrays);
-    void glGenBuffers(int n, unsigned int* buffers);
-    void glBindVertexArray(unsigned int array);
-    void glBindBuffer(unsigned int target, unsigned int buffer);
-    void glBufferData(unsigned int target, long size, const void* data, unsigned int usage);
-    void glVertexAttribPointer(unsigned int index, int size, unsigned int type,
-                              unsigned char normalized, int stride, const void* pointer);
-    void glEnableVertexAttribArray(unsigned int index);
-    void glDeleteVertexArrays(int n, const unsigned int* arrays);
-    void glDeleteBuffers(int n, const unsigned int* buffers);
-    void glDrawArrays(unsigned int mode, int first, int count);
-    void glClear(unsigned int mask);
-    void glClearColor(float r, float g, float b, float a);
-    void glEnable(unsigned int cap);
-    void glViewport(int x, int y, int width, int height);
-}
-
-// OpenGL constants (placeholders)
-#ifndef GL_ARRAY_BUFFER
-#define GL_ARRAY_BUFFER 0x8892
-#define GL_STATIC_DRAW 0x88E4
-#define GL_FLOAT 0x1406
-#define GL_TRIANGLES 0x0004
-#define GL_LINES 0x0001
-#define GL_DEPTH_TEST 0x0B71
-#define GL_COLOR_BUFFER_BIT 0x00004000
-#define GL_DEPTH_BUFFER_BIT 0x00000100
-#endif
 
 // ============================================================================
 // VertexArray Implementation
@@ -121,17 +98,17 @@ void VertexArray::set_data(const std::vector<Vertex>& vertices) {
     // Layout: position (location=0), normal (location=1), color (location=2)
 
     // Position attribute (3 floats)
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex),
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                          reinterpret_cast<void*>(offsetof(Vertex, position)));
     glEnableVertexAttribArray(0);
 
     // Normal attribute (3 floats)
-    glVertexAttribPointer(1, 3, GL_FLOAT, false, sizeof(Vertex),
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                          reinterpret_cast<void*>(offsetof(Vertex, normal)));
     glEnableVertexAttribArray(1);
 
     // Color attribute (3 floats)
-    glVertexAttribPointer(2, 3, GL_FLOAT, false, sizeof(Vertex),
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                          reinterpret_cast<void*>(offsetof(Vertex, color)));
     glEnableVertexAttribArray(2);
 
@@ -145,7 +122,7 @@ void VertexArray::set_data(const std::vector<Vertex>& vertices) {
 Renderer::Renderer()
     : width_(800)
     , height_(600)
-    , camera_(Eigen::Vector3f::Zero(), 3.5f, 0.785f, 0.785f)  // Further back and higher angle
+    , camera_(Eigen::Vector3f(0.0f, 0.3f, 0.0f), 2.0f, 0.785f, 0.524f)  // Look at table center (slight Y offset), reasonable distance
 {
     params_.initialize();
 }
@@ -154,40 +131,101 @@ bool Renderer::initialize(int width, int height) {
     width_ = width;
     height_ = height;
 
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Initializing renderer: %dx%d", width, height);
+#endif
+    std::cout << "[RENDERER] Initializing renderer: " << width << "x" << height << std::endl;
+
     // Initialize OpenGL state
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.1f, 0.1f, 0.15f, 1.0f);  // Dark blue background
     glViewport(0, 0, width_, height_);
 
-    // Create shaders
+    // Note: Backface culling disabled for simplicity
+    // Could enable with glEnable(GL_CULL_FACE) if GLAD is extended with those functions
+
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] OpenGL state initialized");
+#endif
+    std::cout << "[RENDERER] OpenGL state initialized" << std::endl;
+
+    // Create shaders - use platform-specific paths
+    // WebAssembly builds use WebGL-compatible shaders (GLSL ES 300)
+    // Desktop builds use modern OpenGL shaders (GLSL 450)
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Loading WebGL shaders...");
+    basic_shader_ = std::make_unique<Shader>("/shaders/basic_web.vert", "/shaders/basic_web.frag");
+    grid_shader_ = std::make_unique<Shader>("/shaders/grid_web.vert", "/shaders/grid_web.frag");
+#else
+    std::cout << "[RENDERER] Loading desktop shaders..." << std::endl;
     basic_shader_ = std::make_unique<Shader>("shaders/basic.vert", "shaders/basic.frag");
     grid_shader_ = std::make_unique<Shader>("shaders/grid.vert", "shaders/grid.frag");
+#endif
 
     if (!basic_shader_->is_valid() || !grid_shader_->is_valid()) {
+#ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_ERROR, "[RENDERER] ERROR: Shader initialization failed!");
+        emscripten_log(EM_LOG_ERROR, "[RENDERER] basic_shader valid: %d, grid_shader valid: %d",
+                       basic_shader_->is_valid(), grid_shader_->is_valid());
+#endif
         std::cerr << "ERROR::RENDERER::SHADER_INITIALIZATION_FAILED" << std::endl;
+        std::cerr << "  basic_shader valid: " << basic_shader_->is_valid() << std::endl;
+        std::cerr << "  grid_shader valid: " << grid_shader_->is_valid() << std::endl;
         return false;
     }
 
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Shaders loaded successfully");
+#endif
+    std::cout << "[RENDERER] Shaders loaded successfully" << std::endl;
+
     // Create geometry
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Creating geometry...");
+#endif
+    std::cout << "[RENDERER] Creating geometry..." << std::endl;
+
     ball_mesh_ = std::make_unique<VertexArray>();
-    ball_mesh_->set_data(create_sphere(params_.ball_radius, 32));
+    std::vector<Vertex> sphere_vertices = create_sphere(params_.ball_radius, 32);  // 32 segments for smooth appearance
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created sphere with radius=%f, %d vertices", params_.ball_radius, (int)sphere_vertices.size());
+#endif
+    std::cout << "[RENDERER] Created sphere with radius=" << params_.ball_radius << ", " << sphere_vertices.size() << " vertices" << std::endl;
+    ball_mesh_->set_data(sphere_vertices);
 
     table_mesh_ = std::make_unique<VertexArray>();
-    table_mesh_->set_data(create_plane(params_.table_length, params_.table_width));
+    std::vector<Vertex> plane_vertices = create_plane(params_.table_length, params_.table_width);
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created plane with %d vertices", (int)plane_vertices.size());
+#endif
+    std::cout << "[RENDERER] Created plane with " << plane_vertices.size() << " vertices" << std::endl;
+    table_mesh_->set_data(plane_vertices);
 
     grid_mesh_ = std::make_unique<VertexArray>();
-    grid_mesh_->set_data(create_grid(2.0f, 20));
+    std::vector<Vertex> grid_vertices = create_grid(2.0f, 20);
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created grid with %d vertices", (int)grid_vertices.size());
+#endif
+    std::cout << "[RENDERER] Created grid with " << grid_vertices.size() << " vertices" << std::endl;
+    grid_mesh_->set_data(grid_vertices);
 
     axes_mesh_ = std::make_unique<VertexArray>();
-    axes_mesh_->set_data(create_axes(0.5f));
+    std::vector<Vertex> axes_vertices = create_axes(0.5f);
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created axes with %d vertices", (int)axes_vertices.size());
+#endif
+    std::cout << "[RENDERER] Created axes with " << axes_vertices.size() << " vertices" << std::endl;
+    axes_mesh_->set_data(axes_vertices);
+
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Initialization complete!");
+#endif
+    std::cout << "[RENDERER] Initialization complete!" << std::endl;
 
     return true;
 }
 
 void Renderer::render(const StateVector& state) {
-    // Clear framebuffer
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     // Get camera matrices
     float aspect = static_cast<float>(width_) / static_cast<float>(height_);
     Eigen::Matrix4f view = camera_.get_view_matrix();
@@ -262,6 +300,8 @@ void Renderer::render(const StateVector& state) {
         basic_shader_->set_uniform("uNormalMatrix", normal_matrix);
         basic_shader_->set_uniform("uColor", Eigen::Vector3f(0.7f, 0.5f, 0.3f));  // Wood color
         basic_shader_->set_uniform("uLightPos", Eigen::Vector3f(2.0f, 3.0f, 2.0f));
+        basic_shader_->set_uniform("uLightColor", Eigen::Vector3f(1.0f, 1.0f, 1.0f));  // White light
+        basic_shader_->set_uniform("uAmbient", 0.3f);
 
         table_mesh_->bind();
         glDrawArrays(GL_TRIANGLES, 0, table_mesh_->get_vertex_count());
@@ -275,15 +315,25 @@ void Renderer::render(const StateVector& state) {
         basic_shader_->use();
 
         // Ball position from state
-        float x = state(state_index::X);
-        float y = state(state_index::Y);
-        float z = params_.ball_radius;  // Ball sits on table surface
+        // State uses physics coordinates: X (horizontal), Y (horizontal), Z (vertical)
+        // OpenGL uses: X (horizontal), Y (vertical/up), Z (horizontal)
+        float ball_x = state(state_index::X);
+        float ball_y = state(state_index::Y);
+        float ball_z = params_.ball_radius;  // Ball sits on table surface
+
+#ifdef __EMSCRIPTEN__
+        static int log_counter = 0;
+        if (log_counter++ < 5) {  // Log first 5 frames only
+            emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Ball render: state_x=%f, state_y=%f, height=%f, vertices=%d",
+                          ball_x, ball_y, ball_z, ball_mesh_->get_vertex_count());
+        }
+#endif
 
         // Translation to ball position
         Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-        model(0, 3) = x;
-        model(1, 3) = z;  // Y is up in OpenGL
-        model(2, 3) = y;
+        model(0, 3) = ball_x;        // X maps to X
+        model(1, 3) = ball_z;        // Z (height) maps to Y (up in OpenGL)
+        model(2, 3) = -ball_y;       // Y maps to -Z (OpenGL Z points toward viewer)
 
         Eigen::Matrix3f normal_matrix = model.topLeftCorner<3, 3>();
 
@@ -293,6 +343,8 @@ void Renderer::render(const StateVector& state) {
         basic_shader_->set_uniform("uNormalMatrix", normal_matrix);
         basic_shader_->set_uniform("uColor", Eigen::Vector3f(0.9f, 0.1f, 0.1f));  // Red ball
         basic_shader_->set_uniform("uLightPos", Eigen::Vector3f(2.0f, 3.0f, 2.0f));
+        basic_shader_->set_uniform("uLightColor", Eigen::Vector3f(1.0f, 1.0f, 1.0f));  // White light
+        basic_shader_->set_uniform("uAmbient", 0.3f);
 
         ball_mesh_->bind();
         glDrawArrays(GL_TRIANGLES, 0, ball_mesh_->get_vertex_count());
@@ -313,35 +365,61 @@ void Renderer::resize(int width, int height) {
 std::vector<Vertex> Renderer::create_sphere(float radius, int segments) {
     std::vector<Vertex> vertices;
 
-    const float PI = 3.14159265f;
+    const float PI = 3.14159265358979323846f;
     const Eigen::Vector3f color(1.0f, 0.5f, 0.2f);  // Orange for ball
 
-    // UV sphere generation
+    // UV Sphere generation
+    // Generate vertices in a latitude-longitude pattern
     for (int lat = 0; lat <= segments; ++lat) {
-        float theta = lat * PI / segments;
+        float theta = lat * PI / segments;  // 0 to PI
         float sin_theta = std::sin(theta);
         float cos_theta = std::cos(theta);
 
         for (int lon = 0; lon <= segments; ++lon) {
-            float phi = lon * 2.0f * PI / segments;
+            float phi = lon * 2.0f * PI / segments;  // 0 to 2*PI
             float sin_phi = std::sin(phi);
             float cos_phi = std::cos(phi);
 
-            Vertex v;
-            v.position = Eigen::Vector3f(
-                radius * sin_theta * cos_phi,
-                radius * cos_theta,
-                radius * sin_theta * sin_phi
+            // Vertex position (spherical to Cartesian)
+            Eigen::Vector3f pos(
+                radius * sin_theta * cos_phi,  // X
+                radius * cos_theta,             // Y (up)
+                radius * sin_theta * sin_phi    // Z
             );
-            v.normal = v.position.normalized();
-            v.color = color;
 
-            vertices.push_back(v);
+            // Normal is the normalized position vector
+            Eigen::Vector3f normal = pos.normalized();
+
+            // Store vertex (we'll generate indices later)
+            vertices.push_back({pos, normal, color});
         }
     }
 
-    // Convert to triangles (simplified - actual implementation needs indices)
-    return vertices;
+    // Now generate triangle indices and create triangle list
+    std::vector<Vertex> triangle_vertices;
+    for (int lat = 0; lat < segments; ++lat) {
+        for (int lon = 0; lon < segments; ++lon) {
+            // Calculate indices for the quad
+            int current = lat * (segments + 1) + lon;
+            int next = current + segments + 1;
+
+            // First triangle of quad (current, next, current+1)
+            triangle_vertices.push_back(vertices[current]);
+            triangle_vertices.push_back(vertices[next]);
+            triangle_vertices.push_back(vertices[current + 1]);
+
+            // Second triangle of quad (current+1, next, next+1)
+            triangle_vertices.push_back(vertices[current + 1]);
+            triangle_vertices.push_back(vertices[next]);
+            triangle_vertices.push_back(vertices[next + 1]);
+        }
+    }
+
+#ifdef __EMSCRIPTEN__
+    emscripten_log(EM_LOG_CONSOLE, "[SPHERE] Created UV sphere with %d vertices, radius=%.6f", (int)triangle_vertices.size(), radius);
+#endif
+
+    return triangle_vertices;
 }
 
 std::vector<Vertex> Renderer::create_plane(float width, float height) {

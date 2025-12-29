@@ -204,11 +204,16 @@ void Camera::on_mouse_move(double x, double y) {
     last_mouse_x_ = x;
     last_mouse_y_ = y;
 
+    // Only respond to mouse input if CTRL is pressed
+    if (!ctrl_pressed_) {
+        return;
+    }
+
     // Left button: Pan camera
     if (left_button_down_) {
         // Convert screen-space delta to world-space pan
-        // Scale factor determined empirically for comfortable interaction
-        const float pan_speed = 0.005f;
+        // Reduced sensitivity for better control
+        const float pan_speed = 0.002f;  // Reduced from 0.005f
         float pan_x = static_cast<float>(-dx) * pan_speed * distance_;
         float pan_y = static_cast<float>(dy) * pan_speed * distance_;  // Y inverted (screen Y down, world Y up)
 
@@ -218,8 +223,8 @@ void Camera::on_mouse_move(double x, double y) {
     // Right button: Rotate camera
     if (right_button_down_) {
         // Convert screen-space delta to angle delta
-        // Scale factor determined empirically for comfortable interaction
-        const float rotation_speed = 0.005f;
+        // Reduced sensitivity for better control
+        const float rotation_speed = 0.002f;  // Reduced from 0.005f
         float delta_azimuth = static_cast<float>(-dx) * rotation_speed;
         float delta_elevation = static_cast<float>(-dy) * rotation_speed;
 
@@ -228,6 +233,11 @@ void Camera::on_mouse_move(double x, double y) {
 }
 
 void Camera::on_mouse_scroll(double y_offset) {
+    // Only respond to scroll if CTRL is pressed
+    if (!ctrl_pressed_) {
+        return;
+    }
+
     // Scroll for zoom
     // Positive y_offset = scroll up = zoom in (decrease distance)
     // Negative y_offset = scroll down = zoom out (increase distance)

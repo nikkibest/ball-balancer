@@ -46,7 +46,10 @@ bool MainWindow::initialize(void* window) {
 
     // Enable docking and viewports (docking branch features)
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+#ifndef __EMSCRIPTEN__
+    // Viewports not supported in browser (can't create windows outside canvas)
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+#endif
 
     // Setup custom style
     setup_style();
@@ -57,8 +60,12 @@ bool MainWindow::initialize(void* window) {
         return false;
     }
 
-    // OpenGL 4.5 (matches renderer requirements)
-    const char* glsl_version = "#version 450";
+    // Set appropriate GLSL version based on platform
+#ifdef __EMSCRIPTEN__
+    const char* glsl_version = "#version 300 es";  // WebGL 2.0 / OpenGL ES 3.0
+#else
+    const char* glsl_version = "#version 450";     // Desktop OpenGL 4.5
+#endif
     if (!ImGui_ImplOpenGL3_Init(glsl_version)) {
         ImGui_ImplGlfw_Shutdown();
         return false;
