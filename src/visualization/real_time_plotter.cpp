@@ -27,6 +27,16 @@ RealTimePlotter::RealTimePlotter(const SystemParameters& params)
     , current_setpoint_(Eigen::Vector2d::Zero())
     , is_visible_(true)
 {
+    // Pre-allocate plotting buffers to avoid per-frame allocations
+    const size_t max_capacity = DataManager::CAPACITY;
+    times_buffer_.reserve(max_capacity);
+    x_values_buffer_.reserve(max_capacity);
+    y_values_buffer_.reserve(max_capacity);
+    theta_x_buffer_.reserve(max_capacity);
+    theta_y_buffer_.reserve(max_capacity);
+    error_x_buffer_.reserve(max_capacity);
+    error_y_buffer_.reserve(max_capacity);
+    error_mag_buffer_.reserve(max_capacity);
 }
 
 void RealTimePlotter::update(
@@ -49,6 +59,7 @@ void RealTimePlotter::update(
     // Compute errors
     double error_x = setpoint.x() - x;
     double error_y = setpoint.y() - y;
+    double error_magnitude = std::sqrt(error_x * error_x + error_y * error_y);
 
     // Create data point with all fields
     DataManager::DataPoint point;
@@ -61,16 +72,24 @@ void RealTimePlotter::update(
     point.table_theta_y = theta_y;
     point.error_x = error_x;
     point.error_y = error_y;
+    point.error_magnitude = error_magnitude;
     point.setpoint_x = setpoint.x();
     point.setpoint_y = setpoint.y();
 
     // Add to data manager (single unified ring buffer)
     data_.add_point(point);
 
-    // Update trajectory (X vs Y)
-    trajectory_.push_back(Eigen::Vector2d(x, y));
-    if (trajectory_.size() > max_trajectory_points_) {
-        trajectory_.pop_front();
+    // Update trajectory (X vs Y) - ring buffer implementation
+    if (trajectory_size_ < max_trajectory_points_) {
+        // Still filling the buffer
+        trajectory_x_[trajectory_size_] = x;
+        trajectory_y_[trajectory_size_] = y;
+        ++trajectory_size_;
+    } else {
+        // Buffer full, wrap around
+        trajectory_x_[trajectory_offset_] = x;
+        trajectory_y_[trajectory_offset_] = y;
+        trajectory_offset_ = (trajectory_offset_ + 1) % max_trajectory_points_;
     }
 }
 
@@ -104,7 +123,8 @@ bool RealTimePlotter::render() {
 
 void RealTimePlotter::clear() {
     data_.clear();
-    trajectory_.clear();
+    trajectory_size_ = 0;
+    trajectory_offset_ = 0;
 }
 
 void RealTimePlotter::render_trajectory() {
@@ -127,27 +147,41 @@ void RealTimePlotter::render_trajectory() {
     ImPlot::SetupAxisLimits(ImAxis_Y1, -table_y, table_y, ImGuiCond_Always);
 
     // Plot trajectory if we have data
-    if (!trajectory_.empty()) {
-        // Extract X and Y into separate arrays for plotting
-        std::vector<double> xs, ys;
-        xs.reserve(trajectory_.size());
-        ys.reserve(trajectory_.size());
+    if (trajectory_size_ > 0) {
+        double current_x, current_y;
 
-        for (const auto& point : trajectory_) {
-            xs.push_back(point.x());
-            ys.push_back(point.y());
+        // Plot trajectory as line - pass ring buffer data directly to ImPlot
+        if (trajectory_size_ < max_trajectory_points_) {
+            // Buffer not full yet - plot from start
+            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.4f, 0.7f, 1.0f, 1.0f));
+            ImPlot::PlotLine("Ball Path", trajectory_x_.data(), trajectory_y_.data(),
+                            static_cast<int>(trajectory_size_));
+            ImPlot::PopStyleColor();
+
+            current_x = trajectory_x_[trajectory_size_ - 1];
+            current_y = trajectory_y_[trajectory_size_ - 1];
+        } else {
+            // Buffer full - plot in two segments to handle wraparound
+            // Segment 1: from offset to end of array
+            size_t first_count = max_trajectory_points_ - trajectory_offset_;
+            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.4f, 0.7f, 1.0f, 1.0f));
+            ImPlot::PlotLine("Ball Path##1", &trajectory_x_[trajectory_offset_], &trajectory_y_[trajectory_offset_],
+                            static_cast<int>(first_count));
+
+            // Segment 2: from start to offset (if offset > 0)
+            if (trajectory_offset_ > 0) {
+                ImPlot::PlotLine("Ball Path##2", trajectory_x_.data(), trajectory_y_.data(),
+                                static_cast<int>(trajectory_offset_));
+            }
+            ImPlot::PopStyleColor();
+
+            // Current position is just before offset
+            size_t current_idx = (trajectory_offset_ == 0) ? (max_trajectory_points_ - 1) : (trajectory_offset_ - 1);
+            current_x = trajectory_x_[current_idx];
+            current_y = trajectory_y_[current_idx];
         }
 
-        // Plot trajectory as line
-        ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.4f, 0.7f, 1.0f, 1.0f));
-        ImPlot::PlotLine("Ball Path", xs.data(), ys.data(),
-                        static_cast<int>(xs.size()));
-        ImPlot::PopStyleColor();
-
         // Plot current position as marker
-        double current_x = xs.back();
-        double current_y = ys.back();
-
         ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
         ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 8.0f);
         ImPlot::PlotScatter("Current", &current_x, &current_y, 1);
@@ -184,11 +218,10 @@ void RealTimePlotter::render_position_time() {
         return;  // No data to plot
     }
 
-    // Extract time series data from DataManager
-    std::vector<double> times, x_values, y_values;
-    times.reserve(data_.size());
-    x_values.reserve(data_.size());
-    y_values.reserve(data_.size());
+    // Use pre-allocated buffers (clear and reuse)
+    times_buffer_.clear();
+    x_values_buffer_.clear();
+    y_values_buffer_.clear();
 
     const auto* data_ptr = data_.data();
     const size_t offset = data_.offset();
@@ -197,13 +230,13 @@ void RealTimePlotter::render_position_time() {
     // Extract data from ring buffer (unwrap if needed)
     for (size_t i = 0; i < size; ++i) {
         size_t idx = (offset + i) % DataManager::CAPACITY;
-        times.push_back(data_ptr[idx].time);
-        x_values.push_back(data_ptr[idx].ball_x);
-        y_values.push_back(data_ptr[idx].ball_y);
+        times_buffer_.push_back(data_ptr[idx].time);
+        x_values_buffer_.push_back(data_ptr[idx].ball_x);
+        y_values_buffer_.push_back(data_ptr[idx].ball_y);
     }
 
-    double time_min = times.front();
-    double time_max = times.back();
+    double time_min = times_buffer_.front();
+    double time_max = times_buffer_.back();
 
     // X position vs time
     if (!ImPlot::BeginPlot("X Position vs Time", ImVec2(-1, plot_height))) {
@@ -214,8 +247,8 @@ void RealTimePlotter::render_position_time() {
     ImPlot::SetupAxis(ImAxis_Y1, "X Position (m)");
     ImPlot::SetupAxisLimits(ImAxis_X1, time_min, time_max, ImGuiCond_Always);
 
-    ImPlot::PlotLine("X Position", times.data(), x_values.data(),
-                    static_cast<int>(times.size()));
+    ImPlot::PlotLine("X Position", times_buffer_.data(), x_values_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
 
     // Plot setpoint as horizontal line
     double setpoint_x = current_setpoint_.x();
@@ -239,8 +272,8 @@ void RealTimePlotter::render_position_time() {
     ImPlot::SetupAxis(ImAxis_Y1, "Y Position (m)");
     ImPlot::SetupAxisLimits(ImAxis_X1, time_min, time_max, ImGuiCond_Always);
 
-    ImPlot::PlotLine("Y Position", times.data(), y_values.data(),
-                    static_cast<int>(times.size()));
+    ImPlot::PlotLine("Y Position", times_buffer_.data(), y_values_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
 
     // Plot setpoint as horizontal line
     double setpoint_y = current_setpoint_.y();
@@ -263,11 +296,10 @@ void RealTimePlotter::render_control_signals() {
         return;  // No data to plot
     }
 
-    // Extract time series data from DataManager
-    std::vector<double> times, theta_x_deg, theta_y_deg;
-    times.reserve(data_.size());
-    theta_x_deg.reserve(data_.size());
-    theta_y_deg.reserve(data_.size());
+    // Use pre-allocated buffers (clear and reuse)
+    times_buffer_.clear();
+    theta_x_buffer_.clear();
+    theta_y_buffer_.clear();
 
     const auto* data_ptr = data_.data();
     const size_t offset = data_.offset();
@@ -276,13 +308,13 @@ void RealTimePlotter::render_control_signals() {
     // Extract data from ring buffer
     for (size_t i = 0; i < size; ++i) {
         size_t idx = (offset + i) % DataManager::CAPACITY;
-        times.push_back(data_ptr[idx].time);
-        theta_x_deg.push_back(data_ptr[idx].table_theta_x * 180.0 / M_PI);
-        theta_y_deg.push_back(data_ptr[idx].table_theta_y * 180.0 / M_PI);
+        times_buffer_.push_back(data_ptr[idx].time);
+        theta_x_buffer_.push_back(data_ptr[idx].table_theta_x * 180.0 / M_PI);
+        theta_y_buffer_.push_back(data_ptr[idx].table_theta_y * 180.0 / M_PI);
     }
 
-    double time_min = times.front();
-    double time_max = times.back();
+    double time_min = times_buffer_.front();
+    double time_max = times_buffer_.back();
 
     // Table tilt angles
     if (!ImPlot::BeginPlot("Table Tilt Angles", ImVec2(-1, plot_height))) {
@@ -295,14 +327,14 @@ void RealTimePlotter::render_control_signals() {
 
     // Plot theta_x
     ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
-    ImPlot::PlotLine("Theta X", times.data(), theta_x_deg.data(),
-                    static_cast<int>(times.size()));
+    ImPlot::PlotLine("Theta X", times_buffer_.data(), theta_x_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
     ImPlot::PopStyleColor();
 
     // Plot theta_y
     ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.4f, 0.4f, 1.0f, 1.0f));
-    ImPlot::PlotLine("Theta Y", times.data(), theta_y_deg.data(),
-                    static_cast<int>(times.size()));
+    ImPlot::PlotLine("Theta Y", times_buffer_.data(), theta_y_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
     ImPlot::PopStyleColor();
 
     // Plot max tilt limits as horizontal lines
@@ -328,12 +360,11 @@ void RealTimePlotter::render_error() {
         return;  // No data to plot
     }
 
-    // Extract time series data from DataManager
-    std::vector<double> times, error_x_values, error_y_values, error_mag;
-    times.reserve(data_.size());
-    error_x_values.reserve(data_.size());
-    error_y_values.reserve(data_.size());
-    error_mag.reserve(data_.size());
+    // Use pre-allocated buffers (clear and reuse)
+    times_buffer_.clear();
+    error_x_buffer_.clear();
+    error_y_buffer_.clear();
+    error_mag_buffer_.clear();
 
     const auto* data_ptr = data_.data();
     const size_t offset = data_.offset();
@@ -342,16 +373,14 @@ void RealTimePlotter::render_error() {
     // Extract data from ring buffer
     for (size_t i = 0; i < size; ++i) {
         size_t idx = (offset + i) % DataManager::CAPACITY;
-        times.push_back(data_ptr[idx].time);
-        double ex = data_ptr[idx].error_x;
-        double ey = data_ptr[idx].error_y;
-        error_x_values.push_back(ex);
-        error_y_values.push_back(ey);
-        error_mag.push_back(std::sqrt(ex * ex + ey * ey));
+        times_buffer_.push_back(data_ptr[idx].time);
+        error_x_buffer_.push_back(data_ptr[idx].error_x);
+        error_y_buffer_.push_back(data_ptr[idx].error_y);
+        error_mag_buffer_.push_back(data_ptr[idx].error_magnitude);  // Use pre-computed value
     }
 
-    double time_min = times.front();
-    double time_max = times.back();
+    double time_min = times_buffer_.front();
+    double time_max = times_buffer_.back();
 
     // Position error magnitude
     if (!ImPlot::BeginPlot("Position Error", ImVec2(-1, plot_height))) {
@@ -364,21 +393,21 @@ void RealTimePlotter::render_error() {
 
     // Plot X error
     ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
-    ImPlot::PlotLine("Error X", times.data(), error_x_values.data(),
-                    static_cast<int>(times.size()));
+    ImPlot::PlotLine("Error X", times_buffer_.data(), error_x_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
     ImPlot::PopStyleColor();
 
     // Plot Y error
     ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.4f, 0.4f, 1.0f, 1.0f));
-    ImPlot::PlotLine("Error Y", times.data(), error_y_values.data(),
-                    static_cast<int>(times.size()));
+    ImPlot::PlotLine("Error Y", times_buffer_.data(), error_y_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
     ImPlot::PopStyleColor();
 
     // Plot error magnitude
     ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
     ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2.0f);
-    ImPlot::PlotLine("Error Magnitude", times.data(), error_mag.data(),
-                    static_cast<int>(times.size()));
+    ImPlot::PlotLine("Error Magnitude", times_buffer_.data(), error_mag_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
     ImPlot::PopStyleVar();
     ImPlot::PopStyleColor();
 

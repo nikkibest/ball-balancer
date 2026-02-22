@@ -20,7 +20,9 @@ ControlPanel::ControlPanel(const SystemParameters& params)
     : params_(params)
     , is_visible_(true)
     , sim_state_(SimulationState::Stopped)
+    , ctrl_state_(ControllerState::Stopped)
     , reset_requested_(false)
+    , control_(Eigen::Vector2d::Zero())
     , setpoint_(Eigen::Vector2d::Zero())
     , show_advanced_tuning_(false)
 {
@@ -41,6 +43,9 @@ bool ControlPanel::render(
     // Render sections
     render_simulation_controls();
     ImGui::Separator();
+    
+    render_manual_controls();
+    ImGui::Separator();
 
     render_setpoint_controls();
     ImGui::Separator();
@@ -57,8 +62,10 @@ bool ControlPanel::render(
     return true;
 }
 
+
+
 void ControlPanel::render_simulation_controls() {
-    if (ImGui::CollapsingHeader("Simulation Control", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Simulation & Controller", ImGuiTreeNodeFlags_DefaultOpen)) {
         // Use available width for buttons
         float button_width = ImGui::GetContentRegionAvail().x;
 
@@ -69,7 +76,7 @@ void ControlPanel::render_simulation_controls() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.6f, 0.3f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.7f, 0.4f, 1.0f));
 
-            if (ImGui::Button("Pause", ImVec2(button_width, 0))) {
+            if (ImGui::Button("Pause Sim", ImVec2(button_width, 0))) {
                 sim_state_ = SimulationState::Paused;
             }
 
@@ -80,7 +87,7 @@ void ControlPanel::render_simulation_controls() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.8f, 0.3f, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.9f, 0.4f, 1.0f));
 
-            const char* label = (sim_state_ == SimulationState::Paused) ? "Resume" : "Start";
+            const char* label = (sim_state_ == SimulationState::Paused) ? "Resume Sim" : "Start Sim";
             if (ImGui::Button(label, ImVec2(button_width, 0))) {
                 sim_state_ = SimulationState::Running;
             }
@@ -93,7 +100,7 @@ void ControlPanel::render_simulation_controls() {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.3f, 0.3f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.9f, 0.4f, 0.4f, 1.0f));
 
-        if (ImGui::Button("Reset", ImVec2(button_width, 0))) {
+        if (ImGui::Button("Reset Sim", ImVec2(button_width, 0))) {
             reset_requested_ = true;
             sim_state_ = SimulationState::Stopped;
         }
@@ -115,6 +122,65 @@ void ControlPanel::render_simulation_controls() {
             case SimulationState::Stopped:
                 ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Stopped");
                 break;
+        }
+
+        /* Controller controls */
+        // Start button
+        // Play button (green color)
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.8f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.9f, 0.4f, 1.0f));
+
+        if (ImGui::Button("Start Ctrl", ImVec2(button_width, 0))) {
+            ctrl_state_ = ControllerState::Running;
+        }
+        ImGui::PopStyleColor(3);
+        
+
+        // Stop button (red color)
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.8f, 0.3f, 0.3f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.9f, 0.4f, 0.4f, 1.0f));
+
+        if (ImGui::Button("Stop Ctrl", ImVec2(button_width, 0))) {
+            ctrl_state_ = ControllerState::Stopped;
+        }
+
+        ImGui::PopStyleColor(3);
+
+        // Status indicator
+        ImGui::Spacing();
+        ImGui::Text("Status:");
+        ImGui::SameLine();
+
+        switch (ctrl_state_) {
+            case ControllerState::Running:
+                ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Running");
+                break;
+            case ControllerState::Stopped:
+                ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Stopped");
+                break;
+        }
+
+
+    }
+}
+
+void ControlPanel::render_manual_controls() {
+    if (ImGui::CollapsingHeader("Manual Control", ImGuiTreeNodeFlags_DefaultOpen)) {
+        float theta_x_cmd_ = static_cast<float>(control_(control_index::THETA_X_CMD)); 
+        float theta_y_cmd_ = static_cast<float>(control_(control_index::THETA_Y_CMD)); 
+
+        if (ImGui::SliderFloat("##theta_x_cmd", &theta_x_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
+            control_(control_index::THETA_X_CMD) = theta_x_cmd_;
+        }
+        if (ImGui::SliderFloat("##theta_y_cmd", &theta_y_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
+            control_(control_index::THETA_Y_CMD) = theta_y_cmd_;
+        }
+        float button_width = ImGui::GetContentRegionAvail().x;
+        if (ImGui::Button("Reset Manuals", ImVec2(button_width, 0))) {
+            control_(control_index::THETA_X_CMD) = 0.0f;
+            control_(control_index::THETA_Y_CMD) = 0.0f;
         }
     }
 }

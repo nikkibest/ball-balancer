@@ -64,11 +64,13 @@ double PIDAxis::compute(double setpoint, double measurement) {
     // ========================================================================
     // Integral Term with Anti-Windup
     // ========================================================================
-    // Accumulate error
-    integral_ += error * dt_;
+    // Accumulate error (skip on first call after reset)
+    if (!first_call_) {
+        integral_ += error * dt_;
 
-    // Clamp integral to prevent wind-up
-    integral_ = std::clamp(integral_, integral_min_, integral_max_);
+        // Clamp integral to prevent wind-up
+        integral_ = std::clamp(integral_, integral_min_, integral_max_);
+    }
 
     double I = gains_.Ki * integral_;
 
@@ -101,8 +103,8 @@ double PIDAxis::compute(double setpoint, double measurement) {
     // Anti-Windup: Back-Calculation
     // ========================================================================
     // If output is saturated, prevent integral from growing further
-    // Undo the integration step if we're saturated
-    if (output != output_unsat) {
+    // Undo the integration step if we're saturated (skip on first call)
+    if (!first_call_ && output != output_unsat) {
         // We saturated - back out the integration
         integral_ -= error * dt_;
     }

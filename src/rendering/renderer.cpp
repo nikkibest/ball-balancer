@@ -2,6 +2,10 @@
 #include <cmath>
 #include <iostream>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // Use GLAD for OpenGL function loading (desktop) or GLES3 (Emscripten)
 #ifdef __EMSCRIPTEN__
     #include <GLES3/gl3.h>
@@ -134,7 +138,7 @@ bool Renderer::initialize(int width, int height) {
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Initializing renderer: %dx%d", width, height);
 #endif
-    std::cout << "[RENDERER] Initializing renderer: " << width << "x" << height << std::endl;
+    std::cout << "[RENDERER] Initializing renderer: " << width << "x" << height << '\n';
 
     // Initialize OpenGL state
     glEnable(GL_DEPTH_TEST);
@@ -147,7 +151,7 @@ bool Renderer::initialize(int width, int height) {
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] OpenGL state initialized");
 #endif
-    std::cout << "[RENDERER] OpenGL state initialized" << std::endl;
+    std::cout << "[RENDERER] OpenGL state initialized" << '\n';
 
     // Create shaders - use platform-specific paths
     // WebAssembly builds use WebGL-compatible shaders (GLSL ES 300)
@@ -157,7 +161,7 @@ bool Renderer::initialize(int width, int height) {
     basic_shader_ = std::make_unique<Shader>("/shaders/basic_web.vert", "/shaders/basic_web.frag");
     grid_shader_ = std::make_unique<Shader>("/shaders/grid_web.vert", "/shaders/grid_web.frag");
 #else
-    std::cout << "[RENDERER] Loading desktop shaders..." << std::endl;
+    std::cout << "[RENDERER] Loading desktop shaders..." << '\n';
     basic_shader_ = std::make_unique<Shader>("shaders/basic.vert", "shaders/basic.frag");
     grid_shader_ = std::make_unique<Shader>("shaders/grid.vert", "shaders/grid.frag");
 #endif
@@ -168,29 +172,29 @@ bool Renderer::initialize(int width, int height) {
         emscripten_log(EM_LOG_ERROR, "[RENDERER] basic_shader valid: %d, grid_shader valid: %d",
                        basic_shader_->is_valid(), grid_shader_->is_valid());
 #endif
-        std::cerr << "ERROR::RENDERER::SHADER_INITIALIZATION_FAILED" << std::endl;
-        std::cerr << "  basic_shader valid: " << basic_shader_->is_valid() << std::endl;
-        std::cerr << "  grid_shader valid: " << grid_shader_->is_valid() << std::endl;
+        std::cerr << "ERROR::RENDERER::SHADER_INITIALIZATION_FAILED" << '\n';
+        std::cerr << "  basic_shader valid: " << basic_shader_->is_valid() << '\n';
+        std::cerr << "  grid_shader valid: " << grid_shader_->is_valid() << '\n';
         return false;
     }
 
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Shaders loaded successfully");
 #endif
-    std::cout << "[RENDERER] Shaders loaded successfully" << std::endl;
+    std::cout << "[RENDERER] Shaders loaded successfully" << '\n';
 
     // Create geometry
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Creating geometry...");
 #endif
-    std::cout << "[RENDERER] Creating geometry..." << std::endl;
+    std::cout << "[RENDERER] Creating geometry..." << '\n';
 
     ball_mesh_ = std::make_unique<VertexArray>();
     std::vector<Vertex> sphere_vertices = create_sphere(params_.ball_radius, 32);  // 32 segments for smooth appearance
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created sphere with radius=%f, %d vertices", params_.ball_radius, (int)sphere_vertices.size());
 #endif
-    std::cout << "[RENDERER] Created sphere with radius=" << params_.ball_radius << ", " << sphere_vertices.size() << " vertices" << std::endl;
+    std::cout << "[RENDERER] Created sphere with radius=" << params_.ball_radius << ", " << sphere_vertices.size() << " vertices" << '\n';
     ball_mesh_->set_data(sphere_vertices);
 
     table_mesh_ = std::make_unique<VertexArray>();
@@ -198,7 +202,7 @@ bool Renderer::initialize(int width, int height) {
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created plane with %d vertices", (int)plane_vertices.size());
 #endif
-    std::cout << "[RENDERER] Created plane with " << plane_vertices.size() << " vertices" << std::endl;
+    std::cout << "[RENDERER] Created plane with " << plane_vertices.size() << " vertices" << '\n';
     table_mesh_->set_data(plane_vertices);
 
     grid_mesh_ = std::make_unique<VertexArray>();
@@ -206,7 +210,7 @@ bool Renderer::initialize(int width, int height) {
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created grid with %d vertices", (int)grid_vertices.size());
 #endif
-    std::cout << "[RENDERER] Created grid with " << grid_vertices.size() << " vertices" << std::endl;
+    std::cout << "[RENDERER] Created grid with " << grid_vertices.size() << " vertices" << '\n';
     grid_mesh_->set_data(grid_vertices);
 
     axes_mesh_ = std::make_unique<VertexArray>();
@@ -214,13 +218,13 @@ bool Renderer::initialize(int width, int height) {
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created axes with %d vertices", (int)axes_vertices.size());
 #endif
-    std::cout << "[RENDERER] Created axes with " << axes_vertices.size() << " vertices" << std::endl;
+    std::cout << "[RENDERER] Created axes with " << axes_vertices.size() << " vertices" << '\n';
     axes_mesh_->set_data(axes_vertices);
 
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Initialization complete!");
 #endif
-    std::cout << "[RENDERER] Initialization complete!" << std::endl;
+    std::cout << "[RENDERER] Initialization complete!" << '\n';
 
     return true;
 }
@@ -232,123 +236,108 @@ void Renderer::render(const StateVector& state) {
     Eigen::Matrix4f proj = Camera::get_projection_matrix(aspect);
 
     // ========================================================================
-    // Render Grid Floor
+    // Render Grid Floor and Axes (shared shader)
     // ========================================================================
     {
         grid_shader_->use();
 
+        // Set shared uniforms once for both grid and axes
         Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-
         grid_shader_->set_uniform("uModel", model);
         grid_shader_->set_uniform("uView", view);
         grid_shader_->set_uniform("uProjection", proj);
-        grid_shader_->set_uniform("uColor", Eigen::Vector3f(0.3f, 0.3f, 0.3f));
 
+        // Render grid
+        grid_shader_->set_uniform("uColor", Eigen::Vector3f(0.3f, 0.3f, 0.3f));
         grid_mesh_->bind();
         glDrawArrays(GL_LINES, 0, grid_mesh_->get_vertex_count());
         grid_mesh_->unbind();
-    }
 
-    // ========================================================================
-    // Render Coordinate Axes
-    // ========================================================================
-    {
-        grid_shader_->use();
-
-        Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-
-        grid_shader_->set_uniform("uModel", model);
-        grid_shader_->set_uniform("uView", view);
-        grid_shader_->set_uniform("uProjection", proj);
+        // Render axes (uModel, uView, uProjection already set)
         grid_shader_->set_uniform("uColor", Eigen::Vector3f(1.0f, 1.0f, 1.0f));
-
         axes_mesh_->bind();
         glDrawArrays(GL_LINES, 0, axes_mesh_->get_vertex_count());
         axes_mesh_->unbind();
     }
 
     // ========================================================================
-    // Render Table (tilted platform)
+    // Render Table and Ball (shared shader and lighting)
     // ========================================================================
     {
         basic_shader_->use();
 
-        // Table transformation: rotate by theta_x and theta_y
-        float theta_x = state(state_index::THETA_X);
-        float theta_y = state(state_index::THETA_Y);
-
-        // Rotation around X axis
-        Eigen::Matrix4f rot_x = Eigen::Matrix4f::Identity();
-        rot_x(1, 1) = std::cos(theta_x);
-        rot_x(1, 2) = -std::sin(theta_x);
-        rot_x(2, 1) = std::sin(theta_x);
-        rot_x(2, 2) = std::cos(theta_x);
-
-        // Rotation around Y axis
-        Eigen::Matrix4f rot_y = Eigen::Matrix4f::Identity();
-        rot_y(0, 0) = std::cos(theta_y);
-        rot_y(0, 2) = std::sin(theta_y);
-        rot_y(2, 0) = -std::sin(theta_y);
-        rot_y(2, 2) = std::cos(theta_y);
-
-        Eigen::Matrix4f model = rot_y * rot_x;  // Apply rotations
-        Eigen::Matrix3f normal_matrix = model.topLeftCorner<3, 3>();
-
-        basic_shader_->set_uniform("uModel", model);
+        // Set shared uniforms once for both table and ball
         basic_shader_->set_uniform("uView", view);
         basic_shader_->set_uniform("uProjection", proj);
-        basic_shader_->set_uniform("uNormalMatrix", normal_matrix);
-        basic_shader_->set_uniform("uColor", Eigen::Vector3f(0.7f, 0.5f, 0.3f));  // Wood color
         basic_shader_->set_uniform("uLightPos", Eigen::Vector3f(2.0f, 3.0f, 2.0f));
         basic_shader_->set_uniform("uLightColor", Eigen::Vector3f(1.0f, 1.0f, 1.0f));  // White light
         basic_shader_->set_uniform("uAmbient", 0.3f);
 
-        table_mesh_->bind();
-        glDrawArrays(GL_TRIANGLES, 0, table_mesh_->get_vertex_count());
-        table_mesh_->unbind();
-    }
+        // Render table
+        {
+            // Table transformation: rotate by theta_x and theta_y
+            float theta_x = state(state_index::THETA_X);
+            float theta_y = state(state_index::THETA_Y);
 
-    // ========================================================================
-    // Render Ball
-    // ========================================================================
-    {
-        basic_shader_->use();
+            // Rotation around X axis
+            Eigen::Matrix4f rot_x = Eigen::Matrix4f::Identity();
+            rot_x(1, 1) = std::cos(theta_x);
+            rot_x(1, 2) = -std::sin(theta_x);
+            rot_x(2, 1) = std::sin(theta_x);
+            rot_x(2, 2) = std::cos(theta_x);
 
-        // Ball position from state
-        // State uses physics coordinates: X (horizontal), Y (horizontal), Z (vertical)
-        // OpenGL uses: X (horizontal), Y (vertical/up), Z (horizontal)
-        float ball_x = state(state_index::X);
-        float ball_y = state(state_index::Y);
-        float ball_z = params_.ball_radius;  // Ball sits on table surface
+            // Rotation around Y axis
+            Eigen::Matrix4f rot_y = Eigen::Matrix4f::Identity();
+            rot_y(0, 0) = std::cos(theta_y);
+            rot_y(0, 2) = std::sin(theta_y);
+            rot_y(2, 0) = -std::sin(theta_y);
+            rot_y(2, 2) = std::cos(theta_y);
+
+            Eigen::Matrix4f model = rot_y * rot_x;  // Apply rotations
+            Eigen::Matrix3f normal_matrix = model.topLeftCorner<3, 3>();
+
+            basic_shader_->set_uniform("uModel", model);
+            basic_shader_->set_uniform("uNormalMatrix", normal_matrix);
+            basic_shader_->set_uniform("uColor", Eigen::Vector3f(0.7f, 0.5f, 0.3f));  // Wood color
+
+            table_mesh_->bind();
+            glDrawArrays(GL_TRIANGLES, 0, table_mesh_->get_vertex_count());
+            table_mesh_->unbind();
+        }
+
+        // Render ball (uView, uProjection, lighting already set)
+        {
+            // Ball position from state
+            // State uses physics coordinates: X (horizontal), Y (horizontal), Z (vertical)
+            // OpenGL uses: X (horizontal), Y (vertical/up), Z (horizontal)
+            float ball_x = state(state_index::X);
+            float ball_y = state(state_index::Y);
+            float ball_z = params_.ball_radius;  // Ball sits on table surface
 
 #ifdef __EMSCRIPTEN__
-        static int log_counter = 0;
-        if (log_counter++ < 5) {  // Log first 5 frames only
-            emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Ball render: state_x=%f, state_y=%f, height=%f, vertices=%d",
-                          ball_x, ball_y, ball_z, ball_mesh_->get_vertex_count());
-        }
+            static int log_counter = 0;
+            if (log_counter++ < 5) {  // Log first 5 frames only
+                emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Ball render: state_x=%f, state_y=%f, height=%f, vertices=%d",
+                              ball_x, ball_y, ball_z, ball_mesh_->get_vertex_count());
+            }
 #endif
 
-        // Translation to ball position
-        Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-        model(0, 3) = ball_x;        // X maps to X
-        model(1, 3) = ball_z;        // Z (height) maps to Y (up in OpenGL)
-        model(2, 3) = -ball_y;       // Y maps to -Z (OpenGL Z points toward viewer)
+            // Translation to ball position
+            Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+            model(0, 3) = ball_x;        // X maps to X
+            model(1, 3) = ball_z;        // Z (height) maps to Y (up in OpenGL)
+            model(2, 3) = -ball_y;       // Y maps to -Z (OpenGL Z points toward viewer)
 
-        Eigen::Matrix3f normal_matrix = model.topLeftCorner<3, 3>();
+            Eigen::Matrix3f normal_matrix = model.topLeftCorner<3, 3>();
 
-        basic_shader_->set_uniform("uModel", model);
-        basic_shader_->set_uniform("uView", view);
-        basic_shader_->set_uniform("uProjection", proj);
-        basic_shader_->set_uniform("uNormalMatrix", normal_matrix);
-        basic_shader_->set_uniform("uColor", Eigen::Vector3f(0.9f, 0.1f, 0.1f));  // Red ball
-        basic_shader_->set_uniform("uLightPos", Eigen::Vector3f(2.0f, 3.0f, 2.0f));
-        basic_shader_->set_uniform("uLightColor", Eigen::Vector3f(1.0f, 1.0f, 1.0f));  // White light
-        basic_shader_->set_uniform("uAmbient", 0.3f);
+            basic_shader_->set_uniform("uModel", model);
+            basic_shader_->set_uniform("uNormalMatrix", normal_matrix);
+            basic_shader_->set_uniform("uColor", Eigen::Vector3f(0.9f, 0.1f, 0.1f));  // Red ball
 
-        ball_mesh_->bind();
-        glDrawArrays(GL_TRIANGLES, 0, ball_mesh_->get_vertex_count());
-        ball_mesh_->unbind();
+            ball_mesh_->bind();
+            glDrawArrays(GL_TRIANGLES, 0, ball_mesh_->get_vertex_count());
+            ball_mesh_->unbind();
+        }
     }
 }
 
@@ -365,18 +354,18 @@ void Renderer::resize(int width, int height) {
 std::vector<Vertex> Renderer::create_sphere(float radius, int segments) {
     std::vector<Vertex> vertices;
 
-    const float PI = 3.14159265358979323846f;
+    const float pi = static_cast<float>(M_PI);
     const Eigen::Vector3f color(1.0f, 0.5f, 0.2f);  // Orange for ball
 
     // UV Sphere generation
     // Generate vertices in a latitude-longitude pattern
     for (int lat = 0; lat <= segments; ++lat) {
-        float theta = lat * PI / segments;  // 0 to PI
+        float theta = lat * pi / segments;  // 0 to pi
         float sin_theta = std::sin(theta);
         float cos_theta = std::cos(theta);
 
         for (int lon = 0; lon <= segments; ++lon) {
-            float phi = lon * 2.0f * PI / segments;  // 0 to 2*PI
+            float phi = lon * 2.0f * pi / segments;  // 0 to 2*pi
             float sin_phi = std::sin(phi);
             float cos_phi = std::cos(phi);
 

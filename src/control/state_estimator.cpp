@@ -64,7 +64,7 @@ void StateEstimator::compute_system_matrices() {
 
     const double g = params_.gravity;
     const double rolling_factor = 5.0 / 7.0;  // Solid sphere
-    const double tau_servo = 0.05;  // Servo time constant (50ms)
+    const double tau_servo = params_.servo_time_constant;
 
     // A matrix (continuous-time)
     Eigen::Matrix<double, 6, 6> Ac = Eigen::Matrix<double, 6, 6>::Zero();
@@ -74,9 +74,10 @@ void StateEstimator::compute_system_matrices() {
     Ac(state_index::Y, state_index::VY) = 1.0;
 
     // Velocity derivatives (linearized around small angles)
-    // dvx/dt = (5/7) * g * sin(theta_y) ≈ (5/7) * g * theta_y
-    Ac(state_index::VX, state_index::THETA_Y) = rolling_factor * g;
-    Ac(state_index::VY, state_index::THETA_X) = rolling_factor * g;
+    // dvx/dt = (5/7) * g * sin(theta_x) ≈ (5/7) * g * theta_x
+    // dvy/dt = (5/7) * g * sin(theta_y) ≈ (5/7) * g * theta_y
+    Ac(state_index::VX, state_index::THETA_X) = rolling_factor * g;
+    Ac(state_index::VY, state_index::THETA_Y) = rolling_factor * g;
 
     // Angle derivatives (first-order servo dynamics)
     Ac(state_index::THETA_X, state_index::THETA_X) = -1.0 / tau_servo;

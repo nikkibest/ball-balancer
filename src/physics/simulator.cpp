@@ -208,9 +208,7 @@ void Simulator::enforce_constraints() {
     // Table dimensions (centered at origin)
     const double half_length = params_.table_length / 2.0;
     const double half_width = params_.table_width / 2.0;
-
-    // Coefficient of restitution for bounce (energy loss)
-    constexpr double bounce_coeff = 0.5;  // 50% energy retained
+    const double bounce_coeff = params_.bounce_coeff;
 
     // Clamp X position and reverse velocity at boundaries
     if (state_(state_index::X) > half_length) {

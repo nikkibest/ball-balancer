@@ -29,12 +29,14 @@ namespace ball_balancer {
 Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
     : program_id_(0)
 {
-#ifdef __EMSCRIPTEN__
-    emscripten_log(EM_LOG_CONSOLE, "[SHADER] Initializing shader: vertex=%s, fragment=%s",
-                   vertex_path.c_str(), fragment_path.c_str());
+#ifndef NDEBUG
+    #ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_CONSOLE, "[SHADER] Initializing shader: vertex=%s, fragment=%s",
+                       vertex_path.c_str(), fragment_path.c_str());
+    #endif
+        std::cout << "[SHADER] Initializing shader: vertex=" << vertex_path
+                  << ", fragment=" << fragment_path << '\n';
 #endif
-    std::cout << "[SHADER] Initializing shader: vertex=" << vertex_path
-              << ", fragment=" << fragment_path << std::endl;
 
     // Load shader sources from files
     std::string vertex_source = load_shader_source(vertex_path);
@@ -44,16 +46,18 @@ Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
 #ifdef __EMSCRIPTEN__
         emscripten_log(EM_LOG_ERROR, "[SHADER] ERROR: Shader source files not found or empty!");
 #endif
-        std::cerr << "ERROR::SHADER::FILE_NOT_FOUND" << std::endl;
+        std::cerr << "ERROR::SHADER::FILE_NOT_FOUND" << '\n';
         return;
     }
 
-#ifdef __EMSCRIPTEN__
-    emscripten_log(EM_LOG_CONSOLE, "[SHADER] Loaded vertex shader (%d bytes), fragment shader (%d bytes)",
-                   (int)vertex_source.size(), (int)fragment_source.size());
+#ifndef NDEBUG
+    #ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_CONSOLE, "[SHADER] Loaded vertex shader (%d bytes), fragment shader (%d bytes)",
+                       (int)vertex_source.size(), (int)fragment_source.size());
+    #endif
+        std::cout << "[SHADER] Loaded vertex shader (" << vertex_source.size()
+                  << " bytes), fragment shader (" << fragment_source.size() << " bytes)" << '\n';
 #endif
-    std::cout << "[SHADER] Loaded vertex shader (" << vertex_source.size()
-              << " bytes), fragment shader (" << fragment_source.size() << " bytes)" << std::endl;
 
     // Compile shaders
     unsigned int vertex_id = compile_shader(vertex_source, GL_VERTEX_SHADER);
@@ -69,10 +73,12 @@ Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
         return;
     }
 
-#ifdef __EMSCRIPTEN__
-    emscripten_log(EM_LOG_CONSOLE, "[SHADER] Shaders compiled successfully. Linking program...");
+#ifndef NDEBUG
+    #ifdef __EMSCRIPTEN__
+        emscripten_log(EM_LOG_CONSOLE, "[SHADER] Shaders compiled successfully. Linking program...");
+    #endif
+        std::cout << "[SHADER] Shaders compiled successfully. Linking program..." << '\n';
 #endif
-    std::cout << "[SHADER] Shaders compiled successfully. Linking program..." << std::endl;
 
     // Link program
     program_id_ = link_program(vertex_id, fragment_id);
@@ -85,12 +91,14 @@ Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
 #ifdef __EMSCRIPTEN__
         emscripten_log(EM_LOG_ERROR, "[SHADER] ERROR: Program linking failed!");
 #endif
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << std::endl;
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << '\n';
     } else {
-#ifdef __EMSCRIPTEN__
-        emscripten_log(EM_LOG_CONSOLE, "[SHADER] Program linked successfully! ID=%d", program_id_);
+#ifndef NDEBUG
+        #ifdef __EMSCRIPTEN__
+            emscripten_log(EM_LOG_CONSOLE, "[SHADER] Program linked successfully! ID=%d", program_id_);
+        #endif
+            std::cout << "[SHADER] Program linked successfully! ID=" << program_id_ << '\n';
 #endif
-        std::cout << "[SHADER] Program linked successfully! ID=" << program_id_ << std::endl;
     }
 }
 
@@ -103,6 +111,7 @@ Shader::~Shader() {
 
 Shader::Shader(Shader&& other) noexcept
     : program_id_(other.program_id_)
+    , uniform_cache_(std::move(other.uniform_cache_))
 {
     other.program_id_ = 0;  // Transfer ownership
 }
@@ -116,6 +125,7 @@ Shader& Shader::operator=(Shader&& other) noexcept {
 
         // Transfer ownership
         program_id_ = other.program_id_;
+        uniform_cache_ = std::move(other.uniform_cache_);
         other.program_id_ = 0;
     }
     return *this;
@@ -133,7 +143,7 @@ std::string Shader::load_shader_source(const std::string& path) const {
 #ifdef __EMSCRIPTEN__
         emscripten_log(EM_LOG_ERROR, "[SHADER] ERROR: Failed to open shader file: %s", path.c_str());
 #endif
-        std::cerr << "ERROR::SHADER::FILE_NOT_FOUND: " << path << std::endl;
+        std::cerr << "ERROR::SHADER::FILE_NOT_FOUND: " << path << '\n';
         return "";
     }
 
@@ -176,7 +186,7 @@ unsigned int Shader::compile_shader(const std::string& source, unsigned int type
 #endif
         std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n"
                   << "Type: " << shader_type << "\n"
-                  << info_log << std::endl;
+                  << info_log << '\n';
 
         glDeleteShader(shader_id);
         return 0;
@@ -212,7 +222,7 @@ unsigned int Shader::link_program(unsigned int vertex_id, unsigned int fragment_
         emscripten_log(EM_LOG_ERROR, "[SHADER] PROGRAM LINKING FAILED:\n%s", info_log.c_str());
 #endif
         std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-                  << info_log << std::endl;
+                  << info_log << '\n';
 
         glDeleteProgram(program_id);
         return 0;
@@ -226,10 +236,21 @@ int Shader::get_uniform_location(const std::string& name) const {
         return -1;
     }
 
+    // Check cache first
+    auto it = uniform_cache_.find(name);
+    if (it != uniform_cache_.end()) {
+        return it->second;
+    }
+
+    // Not in cache, query OpenGL
     int location = glGetUniformLocation(program_id_, name.c_str());
 
+    // Cache the result (even if -1, to avoid repeated warnings)
+    uniform_cache_[name] = location;
+
+    // Warn only on first lookup if not found
     if (location == -1) {
-        std::cerr << "WARNING::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
+        std::cerr << "WARNING::SHADER::UNIFORM_NOT_FOUND: " << name << '\n';
     }
 
     return location;

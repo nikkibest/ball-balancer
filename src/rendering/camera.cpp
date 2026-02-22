@@ -2,6 +2,10 @@
 #include <cmath>
 #include <algorithm>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /**
  * @file camera.cpp
  * @brief Implementation of orbital camera
@@ -118,7 +122,7 @@ void Camera::rotate(float delta_azimuth, float delta_elevation) {
     elevation_ = std::clamp(elevation_, min_elevation_, max_elevation_);
 
     // Wrap azimuth to [0, 2π]
-    const float two_pi = 2.0f * 3.14159265f;
+    const float two_pi = 2.0f * static_cast<float>(M_PI);
     while (azimuth_ > two_pi) azimuth_ -= two_pi;
     while (azimuth_ < 0.0f) azimuth_ += two_pi;
 

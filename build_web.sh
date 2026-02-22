@@ -25,6 +25,18 @@
 
 set -e  # Exit on error
 
+# Cleanup function to restore CMakeLists.txt on exit/interrupt
+cleanup() {
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [ -f "$script_dir/CMakeLists.txt.native" ]; then
+        echo "Restoring original CMakeLists.txt..."
+        mv "$script_dir/CMakeLists.txt.native" "$script_dir/CMakeLists.txt"
+    fi
+}
+
+# Trap EXIT signal to ensure cleanup runs on script exit (normal or interrupted)
+trap cleanup EXIT
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'

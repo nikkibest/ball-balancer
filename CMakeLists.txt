@@ -104,7 +104,7 @@ target_link_libraries(glad PUBLIC ${CMAKE_DL_LIBS})  # For dlopen/dlsym
 set(BALL_BALANCER_SOURCES
     # Core
     src/core/application.cpp
-    # Note: types.cpp not needed (header-only type definitions)
+    src/core/types.cpp
 
     # Physics
     src/physics/simulator.cpp
@@ -175,22 +175,40 @@ target_link_libraries(ball_balancer PRIVATE
     imgui
     implot
     ${CMAKE_DL_LIBS}  # For dlopen/dlsym (used by GLAD)
-    X11  # X11 library for Linux
 )
+
+# X11 is required on Linux for GLFW/ImGui (but not on macOS or Windows)
+if(UNIX AND NOT APPLE)
+    find_package(X11)
+    if(X11_FOUND)
+        target_link_libraries(ball_balancer PRIVATE X11)
+    endif()
+endif()
 
 # Link Boost if found
 if(Boost_FOUND)
     target_link_libraries(ball_balancer PRIVATE Boost::boost)
 endif()
 
-# Set compiler warnings and optimization for our code only
+# Set compiler warnings and optimization for our code only.
+# Use Release build (-DCMAKE_BUILD_TYPE=Release) for production performance.
+# Use Debug build (default) for development with full debugging symbols.
 if(MSVC)
-    target_compile_options(ball_balancer PRIVATE /W4 /O2)
+    target_compile_options(ball_balancer PRIVATE
+        /W4
+        $<$<CONFIG:Release>:/O2 /DNDEBUG>
+        $<$<CONFIG:Debug>:/Od /Zi>
+    )
 else()
     target_compile_options(ball_balancer PRIVATE
         -Wall -Wextra -Wpedantic
         -Wno-maybe-uninitialized  # Suppress false positives from Eigen
-        -O2  # Use O2 for faster compilation
+        $<$<CONFIG:Release>:-O3 -march=native -DNDEBUG>
+        $<$<CONFIG:Debug>:-O0 -g>
+    )
+    # Disable Eigen's runtime checks in Release builds for maximum performance
+    target_compile_definitions(ball_balancer PRIVATE
+        $<$<CONFIG:Release>:EIGEN_NO_DEBUG>
     )
 endif()
 
@@ -200,41 +218,63 @@ endif()
 
 option(BUILD_TESTS "Build unit and integration tests" ON)
 
-if(BUILD_TESTS)
+# Only build tests for native builds (not Emscripten)
+if(BUILD_TESTS AND NOT EMSCRIPTEN)
     enable_testing()
 
-    # add_subdirectory(external/googletest EXCLUDE_FROM_ALL)
+    # Fetch GoogleTest from GitHub
+    include(FetchContent)
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.14.0
+        EXCLUDE_FROM_ALL
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
 
-    set(TEST_SOURCES
-        tests/physics_test.cpp
-        tests/control_test.cpp
-        tests/integration_test.cpp
-
-        # Link implementation files (not main.cpp)
-        src/physics/ball_model.cpp
-        src/physics/table_model.cpp
+    # Implementation sources to link with tests (no GUI/rendering dependencies)
+    set(TEST_IMPL_SOURCES
+        src/physics/simulator.cpp
         src/control/pid_controller.cpp
         src/control/state_estimator.cpp
         src/math/matrix_utils.cpp
+        src/visualization/data_manager.cpp
+        src/core/types.cpp
     )
 
-    # add_executable(ball_balancer_tests ${TEST_SOURCES})
+    # Test executable
+    add_executable(ball_balancer_tests
+        # tests/physics_test.cpp
+        tests/control_test.cpp
+        tests/data_manager_test.cpp
+        # tests/integration_test.cpp
+        ${TEST_IMPL_SOURCES}
+    )
 
-    # target_include_directories(ball_balancer_tests PRIVATE
-    #     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    #     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    #     ${EIGEN3_INCLUDE_DIR}
-    #     ${Boost_INCLUDE_DIRS}
-    # )
+    target_include_directories(ball_balancer_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${EIGEN3_INCLUDE_DIR}
+    )
 
-    # target_link_libraries(ball_balancer_tests PRIVATE
-    #     gtest_main
-    #     gmock_main
-    #     Eigen3::Eigen
-    #     Boost::boost
-    # )
+    target_link_libraries(ball_balancer_tests PRIVATE
+        GTest::gtest_main
+    )
 
-    # add_test(NAME BallBalancerTests COMMAND ball_balancer_tests)
+    # Apply same compiler flags as main executable
+    if(NOT MSVC)
+        target_compile_options(ball_balancer_tests PRIVATE
+            -Wall -Wextra -Wpedantic
+            -Wno-maybe-uninitialized
+            $<$<CONFIG:Release>:-O3 -march=native -DNDEBUG -DEIGEN_NO_DEBUG>
+            $<$<CONFIG:Debug>:-O0 -g>
+        )
+    endif()
+
+    # Discover tests for CTest
+    include(GoogleTest)
+    gtest_discover_tests(ball_balancer_tests)
 endif()
 
 # ============================================================================
