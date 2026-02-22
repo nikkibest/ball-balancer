@@ -183,8 +183,9 @@ void Simulator::dynamics(const StateVector& state, StateDerivative& dstate, doub
     // Acceleration due to gravity on tilted surface
     // Rotation around X-axis (theta_x) tilts table in Y-direction -> ball accelerates in Y
     // Rotation around Y-axis (theta_y) tilts table in X-direction -> ball accelerates in X
-    const double ax_gravity = rolling_factor * g * std::sin(theta_y);  // Swapped: theta_y affects X
-    const double ay_gravity = rolling_factor * g * std::sin(theta_x);  // Swapped: theta_x affects Y
+    // Negative signs: positive tilt angle should cause ball to roll in negative direction (down the slope)
+    const double ax_gravity = -rolling_factor * g * std::sin(theta_y);  // theta_y affects X (negated)
+    const double ay_gravity = -rolling_factor * g * std::sin(theta_x);  // theta_x affects Y (negated)
 
     // Friction opposes motion (viscous damping model)
     const double ax_friction = -friction * vx;

@@ -55,9 +55,10 @@ Ensure the physics simulation applies gravity correctly based on the table's act
 
 - [x] Task 3.1: Fix gravity vector calculation - swap theta_x and theta_y mapping
 - [x] Task 3.2: Verify physics coordinate frame alignment
-- [ ] Task 3.3: Verify ball acceleration direction matches table tilt (test theta_X positive)
-- [ ] Task 3.4: Verify ball acceleration direction matches table tilt (test theta_Y positive)
-- [ ] Task 3.5: Test combined tilts - ensure ball rolls "downhill" correctly
+- [x] Task 3.2b: Fix gravity direction signs (ball moving opposite to expected)
+- [x] Task 3.3: Verify ball acceleration direction matches table tilt (test theta_X positive)
+- [x] Task 3.4: Verify ball acceleration direction matches table tilt (test theta_Y positive)
+- [x] Task 3.5: Test combined tilts - ensure ball rolls "downhill" correctly
 
 ### Verification
 
