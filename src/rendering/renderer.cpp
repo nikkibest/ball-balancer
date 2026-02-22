@@ -286,12 +286,13 @@ void Renderer::render(const StateVector& state) {
             rot_x(2, 1) = std::sin(theta_x);
             rot_x(2, 2) = std::cos(theta_x);
 
-            // Rotation around Y axis
+            // Rotation around Z axis (physics Y-axis maps to OpenGL -Z axis)
+            // This rotates in the XY plane (around the Z axis pointing toward viewer)
             Eigen::Matrix4f rot_y = Eigen::Matrix4f::Identity();
             rot_y(0, 0) = std::cos(theta_y);
-            rot_y(0, 2) = std::sin(theta_y);
-            rot_y(2, 0) = -std::sin(theta_y);
-            rot_y(2, 2) = std::cos(theta_y);
+            rot_y(0, 1) = -std::sin(theta_y);
+            rot_y(1, 0) = std::sin(theta_y);
+            rot_y(1, 1) = std::cos(theta_y);
 
             Eigen::Matrix4f model = rot_y * rot_x;  // Apply rotations
             Eigen::Matrix3f normal_matrix = model.topLeftCorner<3, 3>();
