@@ -180,9 +180,12 @@ ControlVector PIDController::compute(
     double x = state(state_index::X);
     double y = state(state_index::Y);
 
-    // Compute control for each axis independently
-    double theta_x_cmd = pid_x_.compute(setpoint.x(), x);
-    double theta_y_cmd = pid_y_.compute(setpoint.y(), y);
+    // Compute control for each axis
+    // NOTE: Axes are swapped because:
+    //   - To control X position, we tilt around Y-axis (theta_y)
+    //   - To control Y position, we tilt around X-axis (theta_x)
+    double theta_x_cmd = pid_y_.compute(setpoint.y(), y);  // Y setpoint -> theta_x (swapped)
+    double theta_y_cmd = pid_x_.compute(setpoint.x(), x);  // X setpoint -> theta_y (swapped)
 
     // Return control vector
     ControlVector control;
