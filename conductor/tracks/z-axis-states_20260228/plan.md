@@ -61,17 +61,17 @@ Add sliders in the control panel for all six user-adjustable states, enabled onl
 
 ### Tasks
 
-- [ ] Task 3.1: In `src/gui/control_panel.cpp`, add a "Manual State" section (collapsible `ImGui::CollapsingHeader`) below the existing simulation controls
-- [ ] Task 3.2: Add `ImGui::SliderFloat` (or `SliderDouble`) for: `x` ∈ [-0.25, 0.25] m, `y` ∈ [-0.25, 0.25] m, `z_ball` ∈ [-0.1, 0.5] m
-- [ ] Task 3.3: Add sliders for: `theta_x` ∈ [-0.174, 0.174] rad, `theta_y` ∈ [-0.174, 0.174] rad, `z_table` ∈ [-0.1, 0.2] m
-- [ ] Task 3.4: Disable all sliders (use `ImGui::BeginDisabled` / `ImGui::EndDisabled`) when the simulation is running; enable only when paused
-- [ ] Task 3.5: Wire slider values back to the simulator state via a `Simulator::set_state()` method (add this method to `simulator.hpp/.cpp` if not present) or via the application's `current_state_` field
+- [x] Task 3.1: In `src/gui/control_panel.cpp`, add a "Manual State" section (collapsible `ImGui::CollapsingHeader`) below the existing simulation controls
+- [x] Task 3.2: Add `ImGui::SliderFloat` (or `SliderDouble`) for: `x` ∈ [-0.25, 0.25] m, `y` ∈ [-0.25, 0.25] m, `z_ball` ∈ [-0.1, 0.5] m
+- [x] Task 3.3: Add sliders for: `theta_x` ∈ [-0.174, 0.174] rad, `theta_y` ∈ [-0.174, 0.174] rad, `z_table` ∈ [-0.1, 0.2] m
+- [x] Task 3.4: Disable all sliders (use `ImGui::BeginDisabled` / `ImGui::EndDisabled`) when the simulation is running; enable only when paused
+- [x] Task 3.5: Wire slider values back to the simulator state via a `Simulator::set_state()` method (add this method to `simulator.hpp/.cpp` if not present) or via the application's `current_state_` field
 
 ### Verification
 
-- [ ] Sliders appear in the GUI and are greyed out during simulation
-- [ ] When simulation is paused, moving a slider updates the value and the 3D rendering reflects the change immediately
-- [ ] Slider ranges are physically sensible (no crashes at extremes)
+- [x] Sliders appear in the GUI and are greyed out during simulation
+- [x] When simulation is paused, moving a slider updates the value and the 3D rendering reflects the change immediately
+- [x] Slider ranges are physically sensible (no crashes at extremes)
 
 ---
 

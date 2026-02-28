@@ -24,6 +24,7 @@ ControlPanel::ControlPanel(const SystemParameters& params)
     , reset_requested_(false)
     , control_(Eigen::Vector2d::Zero())
     , setpoint_(Eigen::Vector2d::Zero())
+    , manual_state_(StateVector::Zero())
     , show_advanced_tuning_(false)
 {
 }
@@ -45,6 +46,9 @@ bool ControlPanel::render(
     ImGui::Separator();
     
     render_manual_controls();
+    ImGui::Separator();
+
+    render_manual_state_sliders();
     ImGui::Separator();
 
     render_setpoint_controls();
@@ -413,6 +417,80 @@ void ControlPanel::render_system_status(const StateVector& state) {
         }
         ImGui::Unindent();
     }
+}
+
+bool ControlPanel::render_manual_state_sliders() {
+    manual_state_changed_ = false;
+
+    if (!ImGui::CollapsingHeader("Manual State (Paused Only)")) {
+        return false;
+    }
+
+    // Only active when simulation is not running
+    const bool paused = (sim_state_ != SimulationState::Running);
+    if (!paused) {
+        ImGui::TextDisabled("Start simulation to lock sliders.");
+    }
+
+    ImGui::BeginDisabled(!paused);
+
+    ImGui::TextUnformatted("Ball Position (m)");
+
+    float x = static_cast<float>(manual_state_(state_index::X));
+    float y = static_cast<float>(manual_state_(state_index::Y));
+    float z_ball = static_cast<float>(manual_state_(state_index::Z_BALL));
+
+    const float half_table = static_cast<float>(params_.table_length / 2.0);
+
+    if (ImGui::SliderFloat("x##ms",     &x,      -half_table, half_table, "%.3f")) {
+        manual_state_(state_index::X) = x;
+        manual_state_changed_ = true;
+    }
+    if (ImGui::SliderFloat("y##ms",     &y,      -half_table, half_table, "%.3f")) {
+        manual_state_(state_index::Y) = y;
+        manual_state_changed_ = true;
+    }
+    if (ImGui::SliderFloat("z_ball##ms", &z_ball, -0.1f, 0.5f, "%.3f")) {
+        manual_state_(state_index::Z_BALL) = z_ball;
+        manual_state_changed_ = true;
+    }
+
+    ImGui::Spacing();
+    ImGui::TextUnformatted("Table Tilt (rad)");
+
+    float theta_x = static_cast<float>(manual_state_(state_index::THETA_X));
+    float theta_y = static_cast<float>(manual_state_(state_index::THETA_Y));
+    const float max_tilt = static_cast<float>(params_.max_tilt_angle);
+
+    if (ImGui::SliderFloat("theta_x##ms", &theta_x, -max_tilt, max_tilt, "%.3f")) {
+        manual_state_(state_index::THETA_X) = theta_x;
+        manual_state_changed_ = true;
+    }
+    if (ImGui::SliderFloat("theta_y##ms", &theta_y, -max_tilt, max_tilt, "%.3f")) {
+        manual_state_(state_index::THETA_Y) = theta_y;
+        manual_state_changed_ = true;
+    }
+
+    ImGui::Spacing();
+    ImGui::TextUnformatted("Table Height (m)");
+
+    float z_table = static_cast<float>(manual_state_(state_index::Z_TABLE));
+    if (ImGui::SliderFloat("z_table##ms", &z_table, -0.1f, 0.2f, "%.3f")) {
+        manual_state_(state_index::Z_TABLE) = z_table;
+        manual_state_changed_ = true;
+    }
+
+    // Reset button
+    ImGui::Spacing();
+    float btn_w = ImGui::GetContentRegionAvail().x;
+    if (ImGui::Button("Zero All States##ms", ImVec2(btn_w, 0))) {
+        manual_state_ = StateVector::Zero();
+        manual_state_changed_ = true;
+    }
+
+    ImGui::EndDisabled();
+
+    return manual_state_changed_;
 }
 
 } // namespace ball_balancer
