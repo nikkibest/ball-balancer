@@ -108,6 +108,7 @@ set(BALL_BALANCER_SOURCES
 
     # Physics
     src/physics/simulator.cpp
+    src/physics/ball_dynamics.cpp
 
     # Control
     src/control/pid_controller.cpp
@@ -237,6 +238,7 @@ if(BUILD_TESTS AND NOT EMSCRIPTEN)
     # Implementation sources to link with tests (no GUI/rendering dependencies)
     set(TEST_IMPL_SOURCES
         src/physics/simulator.cpp
+        src/physics/ball_dynamics.cpp
         src/control/pid_controller.cpp
         src/control/state_estimator.cpp
         src/math/matrix_utils.cpp
