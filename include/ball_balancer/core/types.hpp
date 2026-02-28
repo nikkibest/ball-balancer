@@ -177,8 +177,9 @@ struct SystemParameters {
 
     // Environment
     double gravity{9.81};              // Gravitational acceleration (m/s²)
-    double friction_coeff{0.01};       // Rolling friction coefficient
-    double bounce_coeff{0.5};          // Coefficient of restitution (energy retained on bounce)
+    double friction_coeff{0.01};       // Legacy rolling friction coefficient (unused by BallDynamics)
+    double viscous_friction_coeff{0.1}; // Viscous friction b (N·s/m) used by BallDynamics — smooth, RK4-stable
+    double bounce_coeff{0.5};          // Coefficient of restitution e (0=inelastic, 1=elastic)
 
     // Camera/sensing
     double camera_fps{60.0};           // Camera frame rate (Hz)

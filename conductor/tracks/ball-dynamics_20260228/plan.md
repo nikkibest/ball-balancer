@@ -54,11 +54,11 @@ Fill in the full equations of motion for contact mode and free flight.
 
 ### Tasks
 
-- [ ] **Task 2.1** — Implement `isInContact()`
+- [x] **Task 2.1** — Implement `isInContact()`
   - Contact condition: `z_b <= z_t + r + x*theta - y*phi` (small-angle surface height)
   - Return `true` when ball is at or below table surface
 
-- [ ] **Task 2.2** — Implement `computeNormalForce()`
+- [x] **Task 2.2** — Implement `computeNormalForce()`
   - Simplified explicit form (small lateral velocities):
     ```
     N = m * [g + z_t_ddot + 2*x*theta_ddot - 2*y*phi_ddot
@@ -66,7 +66,7 @@ Fill in the full equations of motion for contact mode and free flight.
     ```
   - Clamp to `N >= 0` (cannot push ball through table)
 
-- [ ] **Task 2.3** — Implement `computeAccelerations()` — contact mode
+- [x] **Task 2.3** — Implement `computeAccelerations()` — contact mode
   - Relative velocities:
     ```
     v_rel_x = vx - theta_dot*(z_b - z_t)
@@ -80,14 +80,14 @@ Fill in the full equations of motion for contact mode and free flight.
     ```
   - Note: `phi` = `THETA_X` (roll), `theta` = `THETA_Y` (pitch) — matches existing axis convention
 
-- [ ] **Task 2.4** — Implement `computeAccelerations()` — free flight mode
+- [x] **Task 2.4** — Implement `computeAccelerations()` — free flight mode
   - When `!isInContact()` and `N <= 0`:
     ```
     ax = 0,  ay = 0,  az = -g
     ```
   - Delegate to contact or free flight based on `isInContact()` and `computeNormalForce()`
 
-- [ ] **Task 2.5** — Implement `applyBounce()`
+- [x] **Task 2.5** — Implement `applyBounce()`
   - Detect collision: ball is in contact and approaching (`vz_b < vz_table_contact`)
   - Table contact point velocity:
     ```
