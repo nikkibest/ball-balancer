@@ -163,15 +163,15 @@ Small, isolated additions to support the new model parameters.
 
 ### Tasks
 
-- [ ] **Task 4.1** — Add `viscous_friction_coeff` field to `SystemParameters` (N·s/m)
+- [x] **Task 4.1** — Add `viscous_friction_coeff` field to `SystemParameters` (N·s/m)
   - Default value: `0.1` (reasonable for ping-pong ball on table)
   - Add a comment explaining it replaces Coulomb friction for numerical stability
   - `BallDynamics` uses this field as `b` in `(b/m)*v_rel`
   - Update `friction_coeff` comment: mark as legacy / unused by new model
 
-- [ ] **Task 4.2** — Verify `bounce_coeff` in `SystemParameters` is used (it is: `params_.bounce_coeff` → restitution `e`). No change needed.
+- [x] **Task 4.2** — Verify `bounce_coeff` in `SystemParameters` is used (it is: `params_.bounce_coeff` → restitution `e`). No change needed.
 
-- [ ] **Task 4.3** — Update `state_index::Z_BALL` and `VZ_BALL` comments in `types.hpp` to remove the "stub, zero dynamics" annotation — they are now live states.
+- [x] **Task 4.3** — Update `state_index::Z_BALL` and `VZ_BALL` comments in `types.hpp` to remove the "stub, zero dynamics" annotation — they are now live states.
 
 ### Verification
 
@@ -186,15 +186,15 @@ Extend the system status section to show the new live Z state and contact mode.
 
 ### Tasks
 
-- [ ] **Task 5.1** — Expose contact mode from `BallDynamics` / `Simulator`
+- [x] **Task 5.1** — Expose contact mode from `BallDynamics` / `Simulator`
   - Add `bool isInContact() const` to `Simulator` (queries `ball_dynamics_` with current state and table)
   - Add `get_contact_mode()` returning `bool` (or an enum if preferred)
 
-- [ ] **Task 5.2** — Update `render_system_status()` in `control_panel.cpp`
+- [x] **Task 5.2** — Update `render_system_status()` in `control_panel.cpp`
   - Add "Ball Z: %.4f m" and "Ball Vz: %.4f m/s" to Ball Position/Velocity sections
   - Add "Mode: Contact / Free Flight" indicator with colour coding (green = contact, yellow = free flight)
 
-- [ ] **Task 5.3** — Thread `isInContact()` through `Application` → `ControlPanel::render()`
+- [x] **Task 5.3** — Thread `isInContact()` through `Application` → `ControlPanel::render()`
   - If `ControlPanel::render()` already receives the full state, compute contact mode inside the panel using the state (no API change needed if `TableState` can be reconstructed there)
   - Prefer: pass `bool in_contact` as an additional argument to `ControlPanel::render()` to keep panel logic simple
 
