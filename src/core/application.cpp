@@ -264,6 +264,40 @@ void main_loop_iteration() {
 
         // Always update mouse position (camera will check if buttons are down)
         app->renderer_->get_camera().on_mouse_move(mouse_x, mouse_y);
+
+        // ----------------------------------------------------------------
+        // Keyboard camera controls (hold SHIFT)
+        // SHIFT+W/S  : pan up/down
+        // SHIFT+A/D  : pan left/right
+        // SHIFT+Q/E  : rotate left/right (azimuth)
+        // SHIFT+Up/Down : zoom in/out
+        // ----------------------------------------------------------------
+        bool shift_pressed = (glfwGetKey(app->window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) ||
+                             (glfwGetKey(app->window_, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS);
+
+        if (shift_pressed) {
+            Camera& cam = app->renderer_->get_camera();
+            const float pan_speed    = 0.003f * cam.get_distance();
+            const float rotate_speed = 0.02f;
+            const float zoom_speed   = 0.05f;
+
+            if (glfwGetKey(app->window_, GLFW_KEY_W) == GLFW_PRESS)
+                cam.pan(0.0f,  pan_speed);
+            if (glfwGetKey(app->window_, GLFW_KEY_S) == GLFW_PRESS)
+                cam.pan(0.0f, -pan_speed);
+            if (glfwGetKey(app->window_, GLFW_KEY_A) == GLFW_PRESS)
+                cam.pan(-pan_speed, 0.0f);
+            if (glfwGetKey(app->window_, GLFW_KEY_D) == GLFW_PRESS)
+                cam.pan( pan_speed, 0.0f);
+            if (glfwGetKey(app->window_, GLFW_KEY_Q) == GLFW_PRESS)
+                cam.rotate( rotate_speed, 0.0f);
+            if (glfwGetKey(app->window_, GLFW_KEY_E) == GLFW_PRESS)
+                cam.rotate(-rotate_speed, 0.0f);
+            if (glfwGetKey(app->window_, GLFW_KEY_UP) == GLFW_PRESS)
+                cam.zoom(-zoom_speed);
+            if (glfwGetKey(app->window_, GLFW_KEY_DOWN) == GLFW_PRESS)
+                cam.zoom( zoom_speed);
+        }
     }
 
     // ====================================================================

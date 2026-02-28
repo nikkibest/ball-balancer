@@ -351,55 +351,60 @@ void Renderer::render(const StateVector& state) {
     }
 }
 
-void Renderer::render_axis_labels() {
-    // Use the same aspect ratio and matrices as the actual 3D draw call so
-    // the projected positions always match the rendered axes regardless of
-    // window size or resize events.
+void Renderer::render_axis_labels(ImVec2 clip_min, ImVec2 clip_max) {
+    // Use the same matrices as the actual 3D draw call so projected positions
+    // always match the rendered geometry regardless of window size.
     const float aspect = static_cast<float>(width_) / static_cast<float>(height_);
     const Eigen::Matrix4f view = camera_.get_view_matrix();
     const Eigen::Matrix4f proj = Camera::get_projection_matrix(aspect);
-    const Eigen::Matrix4f vp = proj * view;
+    const Eigen::Matrix4f vp   = proj * view;
 
-    // The GL framebuffer covers the full OS window. ImGui's main viewport
-    // WorkPos/WorkSize describes that same region in screen pixels.
-    ImGuiViewport* main_vp = ImGui::GetMainViewport();
-    const ImVec2 vp_pos  = main_vp->WorkPos;
-    const float  vp_w    = static_cast<float>(width_);
-    const float  vp_h    = static_cast<float>(height_);
+    // The GL framebuffer always starts at the OS window origin (0, 0).
+    // ImGui's main viewport Pos gives us that origin in screen space.
+    const ImGuiViewport* main_vp = ImGui::GetMainViewport();
+    const float fb_x = main_vp->Pos.x;   // OS window top-left X
+    const float fb_y = main_vp->Pos.y;   // OS window top-left Y
+    const float fb_w = static_cast<float>(width_);
+    const float fb_h = static_cast<float>(height_);
 
-    // Project a 3D world point to 2D screen pixel position
+    // Project a 3D world point → 2D framebuffer pixel
     auto project = [&](const Eigen::Vector3f& world_pos) -> ImVec2 {
         Eigen::Vector4f clip = vp * Eigen::Vector4f(world_pos.x(), world_pos.y(), world_pos.z(), 1.0f);
         if (std::abs(clip.w()) < 1e-6f) {
-            return ImVec2(-9999.f, -9999.f);  // Behind camera
+            return ImVec2(-9999.f, -9999.f);
         }
         const float ndcX =  clip.x() / clip.w();
-        const float ndcY = -clip.y() / clip.w();  // Y flipped: NDC Y-up → screen Y-down
-
-        const float screenX = vp_pos.x + (ndcX * 0.5f + 0.5f) * vp_w;
-        const float screenY = vp_pos.y + (ndcY * 0.5f + 0.5f) * vp_h;
-        return ImVec2(screenX, screenY);
+        const float ndcY = -clip.y() / clip.w();  // NDC Y-up → screen Y-down
+        return ImVec2(fb_x + (ndcX * 0.5f + 0.5f) * fb_w,
+                      fb_y + (ndcY * 0.5f + 0.5f) * fb_h);
     };
 
-    // OpenGL axes in world space (must match create_axes length = 0.5f):
-    //   GL X  → physics X  (horizontal)
-    //   GL Y  → physics Z  (vertical / up)
-    //   GL Z  → physics Y  (horizontal, into screen)
-    constexpr float axis_len = 0.5f;
-    const ImVec2 tip_x = project(Eigen::Vector3f(axis_len, 0.0f,     0.0f));
-    const ImVec2 tip_z = project(Eigen::Vector3f(0.0f,     axis_len, 0.0f));  // GL Y = physics Z
-    const ImVec2 tip_y = project(Eigen::Vector3f(0.0f,     0.0f,     axis_len)); // GL Z = physics Y
+    // Axis tips in OpenGL world space (matches create_axes length = 0.5f):
+    //   GL +X → physics X  (red)
+    //   GL +Y → physics Z  (blue, vertical/up)
+    //   GL +Z → physics Y  (green, horizontal into screen)
+    constexpr float L = 0.5f;
+    const ImVec2 tip_x = project(Eigen::Vector3f(L,    0.0f, 0.0f));
+    const ImVec2 tip_y = project(Eigen::Vector3f(0.0f, 0.0f, L   ));  // GL +Z = physics Y
+    const ImVec2 tip_z = project(Eigen::Vector3f(0.0f, L,    0.0f));  // GL +Y = physics Z
 
     ImDrawList* draw = ImGui::GetForegroundDrawList();
-    const float font_size = ImGui::GetFontSize();
-    const float offset = 4.0f;
+    draw->PushClipRect(clip_min, clip_max, true);
 
-    draw->AddText(ImVec2(tip_x.x + offset, tip_x.y - font_size * 0.5f),
-                  IM_COL32(255, 80,  80,  255), "X");
-    draw->AddText(ImVec2(tip_y.x + offset, tip_y.y - font_size * 0.5f),
-                  IM_COL32(80,  255, 80,  255), "Y");
-    draw->AddText(ImVec2(tip_z.x + offset, tip_z.y - font_size * 0.5f),
-                  IM_COL32(80,  80,  255, 255), "Z");
+    const float font_size = ImGui::GetFontSize();
+    constexpr float off = 5.0f;
+
+    auto draw_label = [&](ImVec2 tip, ImU32 col, const char* text) {
+        // Skip labels that projected behind the camera
+        if (tip.x < -9000.f) return;
+        draw->AddText(ImVec2(tip.x + off, tip.y - font_size * 0.5f), col, text);
+    };
+
+    draw_label(tip_x, IM_COL32(255, 80,  80,  255), "X");
+    draw_label(tip_y, IM_COL32(80,  255, 80,  255), "Y");
+    draw_label(tip_z, IM_COL32(80,  80,  255, 255), "Z");
+
+    draw->PopClipRect();
 }
 
 void Renderer::resize(int width, int height) {

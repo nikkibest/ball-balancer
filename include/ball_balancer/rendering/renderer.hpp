@@ -141,13 +141,14 @@ public:
 
     /**
      * @brief Render axis labels "X", "Y", "Z" as an ImGui overlay
+     * @param clip_min Top-left of the region to clip labels to (screen pixels)
+     * @param clip_max Bottom-right of the region to clip labels to
      *
-     * Projects the tip of each coordinate axis from 3D world space into 2D
-     * screen space using the renderer's own width/height (same matrices as
-     * the actual 3D draw call) and draws coloured text labels via the ImGui
-     * foreground draw list.  No parameters needed — uses internal state.
+     * Projects axis tips using the renderer's own matrices and draws labels
+     * via the foreground draw list, clipped to [clip_min, clip_max] so they
+     * don't overdraw side panels or plot windows.
      */
-    void render_axis_labels();
+    void render_axis_labels(ImVec2 clip_min, ImVec2 clip_max);
 
     /**
      * @brief Get camera for user interaction

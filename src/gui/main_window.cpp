@@ -145,20 +145,33 @@ void MainWindow::render(
     // Draw 3D viewport overlays directly on the foreground draw list so they
     // don't interfere with PassthruCentralNode (docking a window into the
     // central node disables passthrough, hiding the OpenGL geometry).
+    // Clip to the central dock node so labels are hidden when covered by panels.
     {
-        ImGuiViewport* vp = ImGui::GetMainViewport();
-        ImVec2 vp_pos = vp->WorkPos;
+        // Query the central node rect; fall back to full work area if not ready
+        ImGuiViewport* main_vp  = ImGui::GetMainViewport();
+        ImVec2 clip_min = main_vp->WorkPos;
+        ImVec2 clip_max = ImVec2(clip_min.x + main_vp->WorkSize.x,
+                                 clip_min.y + main_vp->WorkSize.y);
 
-        // Ball position text in top-left
+        ImGuiDockNode* central = ImGui::DockBuilderGetCentralNode(dockspace_id_);
+        if (central) {
+            clip_min = central->Pos;
+            clip_max = ImVec2(central->Pos.x + central->Size.x,
+                              central->Pos.y + central->Size.y);
+        }
+
+        // Ball position text in top-left of central area
         ImDrawList* fg = ImGui::GetForegroundDrawList();
+        fg->PushClipRect(clip_min, clip_max, true);
         char buf[64];
         snprintf(buf, sizeof(buf), "Ball: (%.3f, %.3f)",
                  state(state_index::X), state(state_index::Y));
-        fg->AddText(ImVec2(vp_pos.x + 10.0f, vp_pos.y + 10.0f),
+        fg->AddText(ImVec2(clip_min.x + 10.0f, clip_min.y + 10.0f),
                     IM_COL32(255, 255, 255, 200), buf);
+        fg->PopClipRect();
 
         // Axis labels projected from 3D world to screen (uses renderer's own matrices)
-        renderer.render_axis_labels();
+        renderer.render_axis_labels(clip_min, clip_max);
     }
 
     // Optional: Show ImGui demo window
