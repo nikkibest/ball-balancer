@@ -43,15 +43,15 @@ Update the simulator to handle the expanded state vector without introducing dyn
 
 ### Tasks
 
-- [ ] Task 2.1: In `src/physics/simulator.cpp`, update the RK4 derivative function to produce zero derivatives for `Z_BALL`, `VZ_BALL`, and `Z_TABLE` indices (i.e., z-positions stay wherever set manually, z-velocity stays zero)
-- [ ] Task 2.2: Ensure `Simulator::get_state()` and `Simulator::get_measurement()` compile and return the extended 9D vector (measurement remains 2D — only x, y positions)
-- [ ] Task 2.3: Update any boundary enforcement code that clamps ball position to also respect (or simply ignore) the z-axis in this track
+- [x] Task 2.1: In `src/physics/simulator.cpp`, update the RK4 derivative function to produce zero derivatives for `Z_BALL`, `VZ_BALL`, and `Z_TABLE` indices (i.e., z-positions stay wherever set manually, z-velocity stays zero)
+- [x] Task 2.2: Ensure `Simulator::get_state()` and `Simulator::get_measurement()` compile and return the extended 9D vector (measurement remains 2D — only x, y positions)
+- [x] Task 2.3: Update any boundary enforcement code that clamps ball position to also respect (or simply ignore) the z-axis in this track
 
 ### Verification
 
-- [ ] `Simulator::step()` compiles and runs with the 9D state
-- [ ] Z-states remain at their initial value through multiple simulation steps (confirm with a debug print or unit test assertion)
-- [ ] Application launches and simulation runs without crash
+- [x] `Simulator::step()` compiles and runs with the 9D state
+- [x] Z-states remain at their initial value through multiple simulation steps (confirm with a debug print or unit test assertion)
+- [x] Application launches and simulation runs without crash
 
 ---
 

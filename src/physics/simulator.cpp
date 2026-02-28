@@ -198,13 +198,17 @@ void Simulator::dynamics(const StateVector& state, StateDerivative& dstate, doub
     // State derivatives (first-order ODE form)
     dstate(state_index::X) = vx;                              // dx/dt = vx
     dstate(state_index::Y) = vy;                              // dy/dt = vy
+    dstate(state_index::Z_BALL) = 0.0;                        // dz_ball/dt = 0 (stub: no vertical dynamics)
     dstate(state_index::VX) = ax;                             // dvx/dt = ax
     dstate(state_index::VY) = ay;                             // dvy/dt = ay
+    dstate(state_index::VZ_BALL) = 0.0;                       // dvz_ball/dt = 0 (stub)
 
     // Servo dynamics (first-order response to commanded angle)
     // θ' = (θ_cmd - θ) / τ  (exponential approach to commanded angle)
     dstate(state_index::THETA_X) = (theta_x_cmd - theta_x) / tau_servo;
     dstate(state_index::THETA_Y) = (theta_y_cmd - theta_y) / tau_servo;
+
+    dstate(state_index::Z_TABLE) = 0.0;                       // dz_table/dt = 0 (stub: no vertical dynamics)
 }
 
 void Simulator::enforce_constraints() {
