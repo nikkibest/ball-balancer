@@ -114,6 +114,14 @@ public:
      */
     double get_time() const { return time_; }
 
+    /**
+     * @brief Query whether the ball is currently in contact with the table.
+     * @return true if ball centre is at or below the table surface + radius
+     */
+    bool isInContact() const {
+        return ball_dynamics_.isInContact(state_, buildTableState(state_));
+    }
+
 private:
     /**
      * @brief ODE system: dx/dt = f(x, u, t)

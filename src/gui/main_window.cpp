@@ -118,7 +118,8 @@ void MainWindow::render(
     PIDController& controller,
     StateEstimator& estimator,
     Renderer& renderer,
-    RealTimePlotter& plotter
+    RealTimePlotter& plotter,
+    bool in_contact
 ) {
     // Render menu bar (outside dockspace)
     render_menu_bar();
@@ -134,7 +135,7 @@ void MainWindow::render(
 
     // Render panels
     if (show_control_panel_) {
-        control_panel_->render(state, controller, estimator);
+        control_panel_->render(state, controller, estimator, in_contact);
     }
 
     // Plots panel rendered by RealTimePlotter

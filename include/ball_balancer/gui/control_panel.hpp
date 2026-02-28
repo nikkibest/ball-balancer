@@ -78,6 +78,7 @@ public:
      * @param state Current system state
      * @param controller PID controller (for gain display/editing)
      * @param estimator State estimator (for tuning display/editing)
+     * @param in_contact Whether the ball is currently in contact with the table
      * @return true if window was visible this frame
      *
      * Must be called between ImGui::NewFrame() and ImGui::Render()
@@ -85,7 +86,8 @@ public:
     bool render(
         const StateVector& state,
         PIDController& controller,
-        StateEstimator& estimator
+        StateEstimator& estimator,
+        bool in_contact
     );
 
     /**
@@ -201,8 +203,9 @@ private:
     /**
      * @brief Render system status section
      * @param state Current system state
+     * @param in_contact Whether the ball is currently in contact with the table
      */
-    void render_system_status(const StateVector& state);
+    void render_system_status(const StateVector& state, bool in_contact);
 
     // System parameters
     SystemParameters params_;

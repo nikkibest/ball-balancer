@@ -416,7 +416,8 @@ void main_loop_iteration() {
     // Render GUI (on top of 3D scene)
     app->main_window_->begin_frame();
     app->main_window_->render(current_state, *app->controller_, *app->estimator_,
-                              *app->renderer_, *app->plotter_);
+                              *app->renderer_, *app->plotter_,
+                              app->simulator_->isInContact());
     app->main_window_->end_frame();
 
     // Check if user requested exit from GUI

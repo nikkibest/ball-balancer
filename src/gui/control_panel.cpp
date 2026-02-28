@@ -32,7 +32,8 @@ ControlPanel::ControlPanel(const SystemParameters& params)
 bool ControlPanel::render(
     const StateVector& state,
     PIDController& controller,
-    StateEstimator& estimator
+    StateEstimator& estimator,
+    bool in_contact
 ) {
     // IMPORTANT: Always call End() even if Begin() returns false
     // This is a critical ImGui requirement
@@ -60,7 +61,7 @@ bool ControlPanel::render(
     render_kalman_tuning(estimator);
     ImGui::Separator();
 
-    render_system_status(state);
+    render_system_status(state, in_contact);
 
     ImGui::End();
     return true;
@@ -357,13 +358,25 @@ void ControlPanel::render_kalman_tuning(StateEstimator& estimator) {
     }
 }
 
-void ControlPanel::render_system_status(const StateVector& state) {
+void ControlPanel::render_system_status(const StateVector& state, bool in_contact) {
     if (ImGui::CollapsingHeader("System Status", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Contact mode indicator
+        ImGui::Text("Mode:");
+        ImGui::SameLine();
+        if (in_contact) {
+            ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Contact");
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), "Free Flight");
+        }
+
+        ImGui::Spacing();
+
         // Ball position
         ImGui::Text("Ball Position:");
         ImGui::Indent();
         ImGui::Text("X: %.4f m", state(state_index::X));
         ImGui::Text("Y: %.4f m", state(state_index::Y));
+        ImGui::Text("Z: %.4f m", state(state_index::Z_BALL));
         ImGui::Unindent();
 
         ImGui::Spacing();
@@ -373,6 +386,7 @@ void ControlPanel::render_system_status(const StateVector& state) {
         ImGui::Indent();
         ImGui::Text("Vx: %.4f m/s", state(state_index::VX));
         ImGui::Text("Vy: %.4f m/s", state(state_index::VY));
+        ImGui::Text("Vz: %.4f m/s", state(state_index::VZ_BALL));
 
         // Velocity magnitude
         double vx = state(state_index::VX);
