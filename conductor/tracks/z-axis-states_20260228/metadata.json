@@ -1,0 +1,16 @@
+{
+  "id": "z-axis-states_20260228",
+  "title": "Z-Axis State Extension",
+  "type": "feature",
+  "status": "pending",
+  "created": "2026-02-28T00:00:00Z",
+  "updated": "2026-02-28T00:00:00Z",
+  "phases": {
+    "total": 4,
+    "completed": 0
+  },
+  "tasks": {
+    "total": 22,
+    "completed": 0
+  }
+}

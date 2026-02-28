@@ -19,7 +19,7 @@ namespace ball_balancer {
 namespace matrix_utils {
 
 bool is_controllable(const SystemMatrix& A, const ControlMatrix& B) {
-    constexpr int n = 6;  // State dimension
+    constexpr int n = 9;  // State dimension
     constexpr int m = 2;  // Control dimension
 
     // Construct controllability matrix C = [B AB A²B A³B A⁴B A⁵B]
@@ -47,7 +47,7 @@ bool is_controllable(const SystemMatrix& A, const ControlMatrix& B) {
 }
 
 bool is_observable(const SystemMatrix& A, const MeasurementMatrix& C) {
-    constexpr int n = 6;  // State dimension
+    constexpr int n = 9;  // State dimension
     constexpr int p = 2;  // Measurement dimension
 
     // Construct observability matrix O = [C; CA; CA²; CA³; CA⁴; CA⁵]
@@ -95,15 +95,18 @@ LinearizedSystem compute_linearization(
     const double tau_servo = params.servo_time_constant;
     constexpr double rolling_factor = 5.0 / 7.0;
 
-    // State: [x, y, vx, vy, theta_x, theta_y]
+    // State: [x, y, z_ball, vx, vy, vz_ball, theta_x, theta_y, z_table]
     //
     // Dynamics (small angle):
     // dx/dt = vx
     // dy/dt = vy
+    // dz_ball/dt = vz_ball (stub: 0)
     // dvx/dt = (5/7)*g*theta_x - friction*vx
     // dvy/dt = (5/7)*g*theta_y - friction*vy
+    // dvz_ball/dt = 0 (stub)
     // dtheta_x/dt = (theta_x_cmd - theta_x) / tau_servo
     // dtheta_y/dt = (theta_y_cmd - theta_y) / tau_servo
+    // dz_table/dt = 0 (stub)
 
     // A matrix: Jacobian ∂f/∂x (linearized around operating point)
     sys.A.setZero();
@@ -194,7 +197,7 @@ bool is_positive_definite(const SystemMatrix& M) {
 
     // All eigenvalues must be positive
     // NOTE: Use explicit type, not auto!
-    Eigen::Matrix<double, 6, 1> eigenvalues = solver.eigenvalues();
+    Eigen::Matrix<double, 9, 1> eigenvalues = solver.eigenvalues();
 
     for (int i = 0; i < eigenvalues.size(); ++i) {
         if (eigenvalues(i) <= 0.0) {

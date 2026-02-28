@@ -44,20 +44,23 @@ StateEstimator::StateEstimator(
 
 void StateEstimator::compute_system_matrices() {
     // ========================================================================
-    // State-Space Model (Linearized)
+    // State-Space Model (Linearized, 9D state)
     // ========================================================================
     //
-    // State: x = [x, y, vx, vy, theta_x, theta_y]
+    // State: x = [x, y, z_ball, vx, vy, vz_ball, theta_x, theta_y, z_table]
     // Control: u = [theta_x_cmd, theta_y_cmd]
     // Measurement: z = [x, y]
     //
     // Continuous-time linearized dynamics:
     // dx/dt = vx
     // dy/dt = vy
-    // dvx/dt = (5/7) * g * theta_y    (ball acceleration due to table tilt)
-    // dvy/dt = (5/7) * g * theta_x
+    // dz_ball/dt = vz_ball         (stub: vz_ball = 0, so z_ball is constant)
+    // dvx/dt = (5/7)*g*theta_y     (ball acceleration due to table tilt)
+    // dvy/dt = (5/7)*g*theta_x
+    // dvz_ball/dt = 0              (stub: no vertical dynamics)
     // dtheta_x/dt = (theta_x_cmd - theta_x) / tau_servo
     // dtheta_y/dt = (theta_y_cmd - theta_y) / tau_servo
+    // dz_table/dt = 0              (stub: no vertical dynamics)
     //
     // State-space form: dx/dt = A*x + B*u
     // ========================================================================
@@ -66,25 +69,30 @@ void StateEstimator::compute_system_matrices() {
     const double rolling_factor = 5.0 / 7.0;  // Solid sphere
     const double tau_servo = params_.servo_time_constant;
 
-    // A matrix (continuous-time)
-    Eigen::Matrix<double, 6, 6> Ac = Eigen::Matrix<double, 6, 6>::Zero();
+    // A matrix (continuous-time, 9x9)
+    // New z_ball (index 2), vz_ball (index 5), z_table (index 8) have zero dynamics (stubs).
+    Eigen::Matrix<double, 9, 9> Ac = Eigen::Matrix<double, 9, 9>::Zero();
 
     // Position derivatives
     Ac(state_index::X, state_index::VX) = 1.0;
     Ac(state_index::Y, state_index::VY) = 1.0;
+    // z_ball derivative: dz_ball/dt = vz_ball (zero dynamics — vz_ball stays 0)
+    Ac(state_index::Z_BALL, state_index::VZ_BALL) = 1.0;
 
     // Velocity derivatives (linearized around small angles)
     // dvx/dt = (5/7) * g * sin(theta_x) ≈ (5/7) * g * theta_x
     // dvy/dt = (5/7) * g * sin(theta_y) ≈ (5/7) * g * theta_y
     Ac(state_index::VX, state_index::THETA_X) = rolling_factor * g;
     Ac(state_index::VY, state_index::THETA_Y) = rolling_factor * g;
+    // vz_ball: zero dynamics — no entry needed
 
     // Angle derivatives (first-order servo dynamics)
     Ac(state_index::THETA_X, state_index::THETA_X) = -1.0 / tau_servo;
     Ac(state_index::THETA_Y, state_index::THETA_Y) = -1.0 / tau_servo;
+    // z_table: zero dynamics — no entry needed
 
-    // B matrix (continuous-time)
-    Eigen::Matrix<double, 6, 2> Bc = Eigen::Matrix<double, 6, 2>::Zero();
+    // B matrix (continuous-time, 9x2)
+    Eigen::Matrix<double, 9, 2> Bc = Eigen::Matrix<double, 9, 2>::Zero();
     Bc(state_index::THETA_X, control_index::THETA_X_CMD) = 1.0 / tau_servo;
     Bc(state_index::THETA_Y, control_index::THETA_Y_CMD) = 1.0 / tau_servo;
 
@@ -203,8 +211,8 @@ void StateEstimator::update(const MeasurementVector& measurement) {
     // Kalman gain using LU decomposition (not inverse!)
     // K = P*C' * S^-1
     // IMPORTANT: Use .solve() instead of .inverse()
-    Eigen::Matrix<double, 6, 2> K_temp = P_ * C_.transpose();
-    Eigen::Matrix<double, 6, 2> K = K_temp * S.lu().solve(Eigen::Matrix2d::Identity());
+    Eigen::Matrix<double, 9, 2> K_temp = P_ * C_.transpose();
+    Eigen::Matrix<double, 9, 2> K = K_temp * S.lu().solve(Eigen::Matrix2d::Identity());
 
     // State update
     // IMPORTANT: Use .eval() because x_hat_ appears on both sides
@@ -216,7 +224,7 @@ void StateEstimator::update(const MeasurementVector& measurement) {
     // P = (I - K*C)*P
     //
     // Using simplified form for real-time performance
-    Eigen::Matrix<double, 6, 6> I_KC = SystemMatrix::Identity() - K * C_;
+    Eigen::Matrix<double, 9, 9> I_KC = SystemMatrix::Identity() - K * C_;
     P_ = (I_KC * P_).eval();
 
     // Ensure P remains symmetric (numerical errors can break symmetry)
