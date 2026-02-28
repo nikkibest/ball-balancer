@@ -298,8 +298,11 @@ void MainWindow::render_viewport(const StateVector& state, Renderer& renderer) {
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     ImGui::Begin("3D Viewport", &show_viewport_, flags);
 
-    // Get viewport position and size for overlay rendering
-    ImVec2 viewport_pos  = ImGui::GetWindowPos();
+    // Get viewport content area position and size for overlay rendering
+    // GetWindowContentRegionMin() gives offset from window top-left to content start
+    ImVec2 win_pos       = ImGui::GetWindowPos();
+    ImVec2 content_min   = ImGui::GetWindowContentRegionMin();
+    ImVec2 viewport_pos  = ImVec2(win_pos.x + content_min.x, win_pos.y + content_min.y);
     ImVec2 viewport_size = ImGui::GetContentRegionAvail();
 
     // NOTE: The 3D scene is rendered to the full window framebuffer in application.cpp

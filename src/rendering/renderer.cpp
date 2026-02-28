@@ -380,7 +380,9 @@ void Renderer::render_axis_labels(ImVec2 viewport_pos, ImVec2 viewport_size) {
     const ImVec2 tip_y = project(Eigen::Vector3f(0.0f,     axis_len, 0.0f));
     const ImVec2 tip_z = project(Eigen::Vector3f(0.0f,     0.0f,     axis_len));
 
-    ImDrawList* draw = ImGui::GetWindowDrawList();
+    // Use foreground draw list so labels appear on top without affecting
+    // the docked viewport window's passthrough behaviour
+    ImDrawList* draw = ImGui::GetForegroundDrawList();
     const float font_size = ImGui::GetFontSize();
     const float offset = 4.0f;  // Slight offset from axis tip
 
