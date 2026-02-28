@@ -462,7 +462,7 @@ bool ControlPanel::render_manual_state_sliders() {
     float theta_y = static_cast<float>(manual_state_(state_index::THETA_Y));
     const float max_tilt = static_cast<float>(params_.max_tilt_angle);
 
-    if (ImGui::SliderFloat("theta_x##ms", &theta_x, -max_tilt, max_tilt, "%.3f")) {
+    if (ImGui::SliderFloat("varphi_x##ms", &theta_x, -max_tilt, max_tilt, "%.3f")) {
         manual_state_(state_index::THETA_X) = theta_x;
         manual_state_changed_ = true;
     }
