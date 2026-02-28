@@ -1,4 +1,5 @@
 #include <ball_balancer/rendering/renderer.hpp>
+#include <imgui.h>
 #include <cmath>
 #include <iostream>
 
@@ -275,9 +276,10 @@ void Renderer::render(const StateVector& state) {
 
         // Render table
         {
-            // Table transformation: rotate by theta_x and theta_y
-            float theta_x = state(state_index::THETA_X);
-            float theta_y = state(state_index::THETA_Y);
+            // Table transformation: rotate by theta_x and theta_y, translate by z_table
+            float theta_x = static_cast<float>(state(state_index::THETA_X));
+            float theta_y = static_cast<float>(state(state_index::THETA_Y));
+            float z_table = static_cast<float>(state(state_index::Z_TABLE));
 
             // Rotation around X axis
             Eigen::Matrix4f rot_x = Eigen::Matrix4f::Identity();
@@ -294,7 +296,11 @@ void Renderer::render(const StateVector& state) {
             rot_y(1, 0) = std::sin(theta_y);
             rot_y(1, 1) = std::cos(theta_y);
 
-            Eigen::Matrix4f model = rot_y * rot_x;  // Apply rotations
+            // Translation by z_table along the vertical (OpenGL Y) axis
+            Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
+            translation(1, 3) = z_table;
+
+            Eigen::Matrix4f model = translation * rot_y * rot_x;  // Translate after rotations
             Eigen::Matrix3f normal_matrix = model.topLeftCorner<3, 3>();
 
             basic_shader_->set_uniform("uModel", model);
@@ -309,11 +315,14 @@ void Renderer::render(const StateVector& state) {
         // Render ball (uView, uProjection, lighting already set)
         {
             // Ball position from state
-            // State uses physics coordinates: X (horizontal), Y (horizontal), Z (vertical)
-            // OpenGL uses: X (horizontal), Y (vertical/up), Z (horizontal)
-            float ball_x = state(state_index::X);
-            float ball_y = state(state_index::Y);
-            float ball_z = params_.ball_radius;  // Ball sits on table surface
+            // Physics coords: X (horizontal), Y (horizontal), Z_BALL (vertical above table)
+            // OpenGL coords: X (horizontal), Y (vertical/up), Z (horizontal, into screen)
+            float ball_x = static_cast<float>(state(state_index::X));
+            float ball_y = static_cast<float>(state(state_index::Y));
+            // OpenGL Y = table z_table + ball_radius (sits on table) + z_ball offset
+            float ball_z = static_cast<float>(state(state_index::Z_TABLE))
+                         + params_.ball_radius
+                         + static_cast<float>(state(state_index::Z_BALL));
 
 #ifdef __EMSCRIPTEN__
             static int log_counter = 0;
@@ -340,6 +349,47 @@ void Renderer::render(const StateVector& state) {
             ball_mesh_->unbind();
         }
     }
+}
+
+void Renderer::render_axis_labels(ImVec2 viewport_pos, ImVec2 viewport_size) {
+    const float aspect = viewport_size.x / viewport_size.y;
+    const Eigen::Matrix4f view = camera_.get_view_matrix();
+    const Eigen::Matrix4f proj = Camera::get_projection_matrix(aspect);
+    const Eigen::Matrix4f vp = proj * view;
+
+    // Project a 3D world point to 2D screen pixel position within the viewport
+    auto project = [&](const Eigen::Vector3f& world_pos) -> ImVec2 {
+        Eigen::Vector4f clip = vp * Eigen::Vector4f(world_pos.x(), world_pos.y(), world_pos.z(), 1.0f);
+
+        // Perspective divide -> NDC [-1, 1]
+        if (std::abs(clip.w()) < 1e-6f) {
+            return ImVec2(-9999.f, -9999.f);  // Behind camera
+        }
+        const float ndcX =  clip.x() / clip.w();
+        const float ndcY = -clip.y() / clip.w();  // Y flipped: OpenGL NDC Y-up, screen Y-down
+
+        // Map NDC to viewport pixel position
+        const float screenX = viewport_pos.x + (ndcX * 0.5f + 0.5f) * viewport_size.x;
+        const float screenY = viewport_pos.y + (ndcY * 0.5f + 0.5f) * viewport_size.y;
+        return ImVec2(screenX, screenY);
+    };
+
+    // Axis tip world positions (must match create_axes length = 0.5f)
+    constexpr float axis_len = 0.5f;
+    const ImVec2 tip_x = project(Eigen::Vector3f(axis_len, 0.0f,     0.0f));
+    const ImVec2 tip_y = project(Eigen::Vector3f(0.0f,     axis_len, 0.0f));
+    const ImVec2 tip_z = project(Eigen::Vector3f(0.0f,     0.0f,     axis_len));
+
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    const float font_size = ImGui::GetFontSize();
+    const float offset = 4.0f;  // Slight offset from axis tip
+
+    draw->AddText(ImVec2(tip_x.x + offset, tip_x.y - font_size * 0.5f),
+                  IM_COL32(255, 80,  80,  255), "X");
+    draw->AddText(ImVec2(tip_y.x + offset, tip_y.y - font_size * 0.5f),
+                  IM_COL32(80,  255, 80,  255), "Y");
+    draw->AddText(ImVec2(tip_z.x + offset, tip_z.y - font_size * 0.5f),
+                  IM_COL32(80,  80,  255, 255), "Z");
 }
 
 void Renderer::resize(int width, int height) {

@@ -137,10 +137,9 @@ void MainWindow::render(
         control_panel_->render(state, controller, estimator);
     }
 
-    // Temporarily disable viewport window to test full-screen rendering
-    // if (show_viewport_) {
-    //     render_viewport(state, renderer);
-    // }
+    if (show_viewport_) {
+        render_viewport(state, renderer);
+    }
 
     // Plots panel rendered by RealTimePlotter
     if (show_plots_) {
@@ -293,26 +292,26 @@ void MainWindow::render_dockspace() {
 }
 
 void MainWindow::render_viewport(const StateVector& state, Renderer& renderer) {
-    (void)state;     // Unused - 3D rendering is done elsewhere
-    (void)renderer;  // Unused - 3D rendering is done elsewhere
-
     // Make viewport window transparent to show 3D rendering underneath
     ImGui::SetNextWindowBgAlpha(0.0f);  // Fully transparent background
 
     ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
     ImGui::Begin("3D Viewport", &show_viewport_, flags);
 
-    // Get available size for rendering
+    // Get viewport position and size for overlay rendering
+    ImVec2 viewport_pos  = ImGui::GetWindowPos();
     ImVec2 viewport_size = ImGui::GetContentRegionAvail();
-    (void)viewport_size;  // Unused for now
 
     // NOTE: The 3D scene is rendered to the full window framebuffer in application.cpp
     // This viewport window is transparent, so the 3D rendering shows through
 
-    // Optional: Add minimal overlay text in corner
+    // Ball position overlay in corner
     ImGui::SetCursorPos(ImVec2(10, 10));
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.8f), "Ball: (%.3f, %.3f)",
                       state(state_index::X), state(state_index::Y));
+
+    // Draw axis labels (X/Y/Z) projected from 3D world to screen
+    renderer.render_axis_labels(viewport_pos, viewport_size);
 
     ImGui::End();
 }

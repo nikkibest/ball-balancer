@@ -37,6 +37,8 @@ RealTimePlotter::RealTimePlotter(const SystemParameters& params)
     error_x_buffer_.reserve(max_capacity);
     error_y_buffer_.reserve(max_capacity);
     error_mag_buffer_.reserve(max_capacity);
+    z_ball_buffer_.reserve(max_capacity);
+    z_table_buffer_.reserve(max_capacity);
 }
 
 void RealTimePlotter::update(
@@ -51,10 +53,13 @@ void RealTimePlotter::update(
     // Extract state components
     double x = state(state_index::X);
     double y = state(state_index::Y);
+    double z = state(state_index::Z_BALL);
     double vx = state(state_index::VX);
     double vy = state(state_index::VY);
+    double vz = state(state_index::VZ_BALL);
     double theta_x = control(0);  // Use control (not state) for table angles
     double theta_y = control(1);
+    double table_z = state(state_index::Z_TABLE);
 
     // Compute errors
     double error_x = setpoint.x() - x;
@@ -66,10 +71,13 @@ void RealTimePlotter::update(
     point.time = time;
     point.ball_x = x;
     point.ball_y = y;
+    point.ball_z = z;
     point.ball_vx = vx;
     point.ball_vy = vy;
+    point.ball_vz = vz;
     point.table_theta_x = theta_x;
     point.table_theta_y = theta_y;
+    point.table_z = table_z;
     point.error_x = error_x;
     point.error_y = error_y;
     point.error_magnitude = error_magnitude;
@@ -115,6 +123,10 @@ bool RealTimePlotter::render() {
 
     if (ImGui::CollapsingHeader("Position Error")) {
         render_error();
+    }
+
+    if (ImGui::CollapsingHeader("Z Position")) {
+        render_z_position();
     }
 
     ImGui::End();
@@ -409,6 +421,56 @@ void RealTimePlotter::render_error() {
     ImPlot::PlotLine("Error Magnitude", times_buffer_.data(), error_mag_buffer_.data(),
                     static_cast<int>(times_buffer_.size()));
     ImPlot::PopStyleVar();
+    ImPlot::PopStyleColor();
+
+    ImPlot::EndPlot();
+}
+
+void RealTimePlotter::render_z_position() {
+    float plot_height = 200.0f;
+
+    if (data_.empty()) {
+        return;
+    }
+
+    // Use pre-allocated buffers (clear and reuse)
+    times_buffer_.clear();
+    z_ball_buffer_.clear();
+    z_table_buffer_.clear();
+
+    const auto* data_ptr = data_.data();
+    const size_t offset = data_.offset();
+    const size_t size = data_.size();
+
+    // Extract data from ring buffer
+    for (size_t i = 0; i < size; ++i) {
+        size_t idx = (offset + i) % DataManager::CAPACITY;
+        times_buffer_.push_back(data_ptr[idx].time);
+        z_ball_buffer_.push_back(data_ptr[idx].ball_z);
+        z_table_buffer_.push_back(data_ptr[idx].table_z);
+    }
+
+    double time_min = times_buffer_.front();
+    double time_max = times_buffer_.back();
+
+    if (!ImPlot::BeginPlot("Z Position vs Time", ImVec2(-1, plot_height))) {
+        return;
+    }
+
+    ImPlot::SetupAxis(ImAxis_X1, "Time (s)");
+    ImPlot::SetupAxis(ImAxis_Y1, "Z Position (m)");
+    ImPlot::SetupAxisLimits(ImAxis_X1, time_min, time_max, ImGuiCond_Always);
+
+    // Plot ball Z (blue)
+    ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.4f, 0.7f, 1.0f, 1.0f));
+    ImPlot::PlotLine("Ball Z", times_buffer_.data(), z_ball_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
+    ImPlot::PopStyleColor();
+
+    // Plot table Z (grey)
+    ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+    ImPlot::PlotLine("Table Z", times_buffer_.data(), z_table_buffer_.data(),
+                    static_cast<int>(times_buffer_.size()));
     ImPlot::PopStyleColor();
 
     ImPlot::EndPlot();
