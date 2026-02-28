@@ -252,7 +252,7 @@ if(BUILD_TESTS AND NOT EMSCRIPTEN)
         tests/control_test.cpp
         tests/data_manager_test.cpp
         tests/ball_dynamics_test.cpp
-        # tests/integration_test.cpp
+        tests/integration_test.cpp
         ${TEST_IMPL_SOURCES}
     )
 

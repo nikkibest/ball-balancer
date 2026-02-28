@@ -1,417 +1,234 @@
-/**
- * @file integration_test.cpp
- * @brief Integration tests for closed-loop ball balancer system
- *
- * Tests cover:
- * - T-10: Closed-loop stability and tracking
- * - Full system integration (Simulator + StateEstimator + DualAxisPIDController)
- * - Setpoint tracking performance
- * - Disturbance rejection
- */
-
 #include <gtest/gtest.h>
-#include "ball_balancer/physics/simulator.hpp"
-#include "ball_balancer/control/state_estimator.hpp"
-#include "ball_balancer/control/dual_axis_pid_controller.hpp"
-#include "ball_balancer/core/types.hpp"
+#include <ball_balancer/physics/simulator.hpp>
+#include <ball_balancer/core/types.hpp>
 #include <cmath>
 
-// ============================================================================
-// T-10: Closed-Loop Integration Tests
-// ============================================================================
-
 /**
- * Test that closed-loop system can stabilize ball at origin.
+ * @file integration_test.cpp
+ * @brief Phase 6 integration tests for the full BallDynamics + Simulator loop.
  *
- * This is the fundamental test: given arbitrary initial conditions,
- * the controller should bring the ball to rest at (0, 0).
+ * Tests:
+ *  6.1 — Flat table, zero control: ball stays on surface for >=5 s
+ *  6.2 — Applied tilt: ball rolls in correct direction; Z tracks surface
+ *  6.3 — Free flight / bounce: ball drops, bounces, and stays above surface
+ *  6.6 — Regression: simple P-control reduces position error (horizontal dynamics)
  */
-TEST(ClosedLoopIntegration, StabilizeAtOrigin) {
-    SystemParameters params;
-    params.initialize();
 
-    PhysicsSimulator sim(params);
-    StateEstimator estimator(params);
-    DualAxisPIDController controller(params);
+namespace ball_balancer {
+namespace {
 
-    // Initial state: ball offset from origin with some velocity
-    StateVector state = StateVector::Zero();
-    state(state_index::X) = 0.05;   // 5cm offset
-    state(state_index::Y) = -0.03;  // 3cm offset (opposite direction)
-    state(state_index::VX) = 0.1;   // Moving
-    state(state_index::VY) = -0.05; // Moving
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-    estimator.reset(state);
+SystemParameters defaultParams() {
+    SystemParameters p;
+    p.initialize();
+    return p;
+}
 
-    // Setpoint: origin
-    Eigen::Vector2d setpoint(0.0, 0.0);
-
-    // Closed-loop simulation for 5 seconds
-    const double dt = 0.001;
-    const int steps = 5000;  // 5 seconds
-
+/// Step simulator for `seconds` at the given dt with constant control.
+void runFor(Simulator& sim, double seconds, const ControlVector& ctrl,
+            double dt = 0.001) {
+    const int steps = static_cast<int>(seconds / dt);
     for (int i = 0; i < steps; ++i) {
-        // Estimate state (in real system, this uses noisy measurements)
-        const StateVector& x_hat = estimator.get_state();
-
-        // Compute control
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-
-        // Apply control to simulator
-        state = sim.step(state, control, dt);
-
-        // Update estimator (assumes perfect measurement for this test)
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
-    }
-
-    // After 5 seconds, ball should be very close to origin
-    EXPECT_NEAR(state(state_index::X), 0.0, 0.005)
-        << "Ball should stabilize near X=0 within 5mm";
-    EXPECT_NEAR(state(state_index::Y), 0.0, 0.005)
-        << "Ball should stabilize near Y=0 within 5mm";
-
-    // Velocity should be very small
-    EXPECT_NEAR(state(state_index::VX), 0.0, 0.01)
-        << "Ball should come to rest (VX ~0)";
-    EXPECT_NEAR(state(state_index::VY), 0.0, 0.01)
-        << "Ball should come to rest (VY ~0)";
-}
-
-/**
- * Test setpoint tracking: ball should move to and stabilize at non-zero setpoint.
- */
-TEST(ClosedLoopIntegration, TrackNonZeroSetpoint) {
-    SystemParameters params;
-    params.initialize();
-
-    PhysicsSimulator sim(params);
-    StateEstimator estimator(params);
-    DualAxisPIDController controller(params);
-
-    // Initial state: ball at origin
-    StateVector state = StateVector::Zero();
-    estimator.reset(state);
-
-    // Setpoint: off-center position
-    Eigen::Vector2d setpoint(0.08, -0.06);  // 8cm, -6cm
-
-    // Closed-loop simulation for 10 seconds
-    const double dt = 0.001;
-    const int steps = 10000;
-
-    for (int i = 0; i < steps; ++i) {
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        state = sim.step(state, control, dt);
-
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
-    }
-
-    // Ball should track setpoint within a few mm
-    EXPECT_NEAR(state(state_index::X), setpoint.x(), 0.01)
-        << "Ball should track setpoint X within 1cm";
-    EXPECT_NEAR(state(state_index::Y), setpoint.y(), 0.01)
-        << "Ball should track setpoint Y within 1cm";
-
-    // Should be at rest at setpoint
-    EXPECT_NEAR(state(state_index::VX), 0.0, 0.02)
-        << "Ball should be at rest at setpoint";
-    EXPECT_NEAR(state(state_index::VY), 0.0, 0.02)
-        << "Ball should be at rest at setpoint";
-}
-
-/**
- * Test setpoint change: system should track moving setpoint.
- */
-TEST(ClosedLoopIntegration, TrackChangingSetpoint) {
-    SystemParameters params;
-    params.initialize();
-
-    PhysicsSimulator sim(params);
-    StateEstimator estimator(params);
-    DualAxisPIDController controller(params);
-
-    StateVector state = StateVector::Zero();
-    estimator.reset(state);
-
-    const double dt = 0.001;
-
-    // Phase 1: Track setpoint at (0.05, 0)
-    Eigen::Vector2d setpoint(0.05, 0.0);
-
-    for (int i = 0; i < 3000; ++i) {  // 3 seconds
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        state = sim.step(state, control, dt);
-
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
-    }
-
-    // Should be near first setpoint
-    EXPECT_NEAR(state(state_index::X), 0.05, 0.01);
-
-    // Phase 2: Change setpoint to (-0.05, 0.05)
-    setpoint = Eigen::Vector2d(-0.05, 0.05);
-
-    for (int i = 0; i < 5000; ++i) {  // 5 more seconds
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        state = sim.step(state, control, dt);
-
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
-    }
-
-    // Should track new setpoint
-    EXPECT_NEAR(state(state_index::X), -0.05, 0.01)
-        << "Ball should track new setpoint X";
-    EXPECT_NEAR(state(state_index::Y), 0.05, 0.01)
-        << "Ball should track new setpoint Y";
-}
-
-/**
- * Test system stability: no oscillations or instability at origin.
- */
-TEST(ClosedLoopIntegration, NoOscillationsAtOrigin) {
-    SystemParameters params;
-    params.initialize();
-
-    PhysicsSimulator sim(params);
-    StateEstimator estimator(params);
-    DualAxisPIDController controller(params);
-
-    // Start very close to origin
-    StateVector state = StateVector::Zero();
-    state(state_index::X) = 0.001;  // 1mm offset
-    estimator.reset(state);
-
-    Eigen::Vector2d setpoint(0.0, 0.0);
-
-    const double dt = 0.001;
-
-    // Settle to equilibrium
-    for (int i = 0; i < 2000; ++i) {
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        state = sim.step(state, control, dt);
-
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
-    }
-
-    // Track position over next 3 seconds to check for oscillations
-    double max_deviation = 0.0;
-    for (int i = 0; i < 3000; ++i) {
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        state = sim.step(state, control, dt);
-
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
-
-        // Track maximum deviation
-        double deviation = std::sqrt(state(state_index::X) * state(state_index::X) +
-                                    state(state_index::Y) * state(state_index::Y));
-        max_deviation = std::max(max_deviation, deviation);
-    }
-
-    // Should not oscillate more than 5mm from origin
-    EXPECT_LT(max_deviation, 0.005)
-        << "System should not oscillate at equilibrium (max deviation < 5mm)";
-}
-
-/**
- * Test disturbance rejection: system should recover from external disturbance.
- */
-TEST(ClosedLoopIntegration, DisturbanceRejection) {
-    SystemParameters params;
-    params.initialize();
-
-    PhysicsSimulator sim(params);
-    StateEstimator estimator(params);
-    DualAxisPIDController controller(params);
-
-    StateVector state = StateVector::Zero();
-    estimator.reset(state);
-
-    Eigen::Vector2d setpoint(0.0, 0.0);
-
-    const double dt = 0.001;
-
-    // Stabilize at origin first
-    for (int i = 0; i < 2000; ++i) {
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        state = sim.step(state, control, dt);
-
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
-    }
-
-    // Apply disturbance: sudden velocity impulse
-    state(state_index::VX) += 0.3;  // 30 cm/s impulse
-    state(state_index::VY) += 0.2;  // 20 cm/s impulse
-
-    // Update estimator with disturbed state
-    Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-    estimator.update(measurement);
-
-    // System should recover from disturbance within 5 seconds
-    for (int i = 0; i < 5000; ++i) {
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        state = sim.step(state, control, dt);
-
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
-    }
-
-    // After recovery, should be back near origin
-    EXPECT_NEAR(state(state_index::X), 0.0, 0.01)
-        << "System should reject disturbance and return to origin";
-    EXPECT_NEAR(state(state_index::Y), 0.0, 0.01)
-        << "System should reject disturbance and return to origin";
-    EXPECT_NEAR(state(state_index::VX), 0.0, 0.02)
-        << "Velocity should return to zero after disturbance";
-    EXPECT_NEAR(state(state_index::VY), 0.0, 0.02)
-        << "Velocity should return to zero after disturbance";
-}
-
-/**
- * Test that control output respects actuator limits.
- */
-TEST(ClosedLoopIntegration, ControlOutputRespectslimits) {
-    SystemParameters params;
-    params.initialize();
-
-    PhysicsSimulator sim(params);
-    StateEstimator estimator(params);
-    DualAxisPIDController controller(params);
-
-    // Extreme initial condition to stress controller
-    StateVector state = StateVector::Zero();
-    state(state_index::X) = 0.15;   // 15cm - very far from origin
-    state(state_index::VX) = 0.5;   // 50cm/s - fast
-    estimator.reset(state);
-
-    Eigen::Vector2d setpoint(0.0, 0.0);
-
-    const double dt = 0.001;
-
-    // Run closed loop
-    for (int i = 0; i < 1000; ++i) {
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-
-        // Control output should always respect limits
-        EXPECT_LE(std::abs(control(control_index::THETA_X)), params.max_table_angle)
-            << "Control output should not exceed max_table_angle at step " << i;
-        EXPECT_LE(std::abs(control(control_index::THETA_Y)), params.max_table_angle)
-            << "Control output should not exceed max_table_angle at step " << i;
-
-        state = sim.step(state, control, dt);
-
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
+        sim.step(dt, ctrl);
     }
 }
 
-/**
- * Test axis decoupling: X and Y axes should be independent.
- */
-TEST(ClosedLoopIntegration, AxisDecoupling) {
-    SystemParameters params;
-    params.initialize();
+// ---------------------------------------------------------------------------
+// Task 6.1 — Flat table equilibrium
+// ---------------------------------------------------------------------------
 
-    PhysicsSimulator sim(params);
-    StateEstimator estimator(params);
-    DualAxisPIDController controller(params);
+TEST(Integration, FlatTableBallStaysOnSurface) {
+    SystemParameters p = defaultParams();
+    Simulator sim(p);
 
-    // Initial state: only X-axis offset
-    StateVector state = StateVector::Zero();
-    state(state_index::X) = 0.05;
-    state(state_index::Y) = 0.0;
-    estimator.reset(state);
+    // Ball starts resting on flat table at origin
+    StateVector s = StateVector::Zero();
+    s(state_index::Z_BALL)  = p.ball_radius;   // z_b = r (on surface, z_t=0)
+    s(state_index::Z_TABLE) = 0.0;
+    sim.reset(s);
 
-    Eigen::Vector2d setpoint(0.0, 0.0);
+    const ControlVector zero_ctrl = ControlVector::Zero();
 
-    const double dt = 0.001;
+    // Run for 5 seconds
+    runFor(sim, 5.0, zero_ctrl);
 
-    // Run closed loop
-    for (int i = 0; i < 3000; ++i) {
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        state = sim.step(state, control, dt);
+    const StateVector& final = sim.get_state();
+    const double z_surface   = p.ball_radius;  // flat table, z_t=0
 
-        Eigen::Vector2d measurement(state(state_index::X), state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
+    // Ball must remain on surface (within 0.5 mm)
+    EXPECT_NEAR(final(state_index::Z_BALL), z_surface, 5e-4)
+        << "Ball should stay on surface on flat table with zero control";
 
-        // Y position should remain very close to zero throughout
-        EXPECT_NEAR(state(state_index::Y), 0.0, 0.002)
-            << "Y-axis should remain near zero when only X is disturbed at step " << i;
-    }
+    // Horizontal drift must be negligible (within 0.5 mm)
+    EXPECT_NEAR(final(state_index::X), 0.0, 5e-4)
+        << "Ball should not drift horizontally on flat table";
+    EXPECT_NEAR(final(state_index::Y), 0.0, 5e-4)
+        << "Ball should not drift horizontally on flat table";
 
-    // X should have stabilized
-    EXPECT_NEAR(state(state_index::X), 0.0, 0.01);
+    // Ball should be in contact
+    EXPECT_TRUE(sim.isInContact())
+        << "Ball should remain in contact with flat table";
 }
 
-/**
- * Test estimator convergence: estimator should track true state.
- */
-TEST(ClosedLoopIntegration, EstimatorConvergence) {
-    SystemParameters params;
-    params.initialize();
+// ---------------------------------------------------------------------------
+// Task 6.2 — Tilt drives ball in correct direction; Z tracks surface
+// ---------------------------------------------------------------------------
 
-    PhysicsSimulator sim(params);
-    StateEstimator estimator(params);
-    DualAxisPIDController controller(params);
+TEST(Integration, TiltDrivesBallInCorrectXDirection) {
+    SystemParameters p = defaultParams();
+    Simulator sim(p);
 
-    // Initial state: estimator initialized to wrong state
-    StateVector true_state = StateVector::Zero();
-    true_state(state_index::X) = 0.05;
-    true_state(state_index::VX) = 0.1;
+    StateVector s = StateVector::Zero();
+    s(state_index::Z_BALL) = p.ball_radius;
+    sim.reset(s);
 
-    StateVector estimated_state = StateVector::Zero();  // Estimator thinks ball is at origin
-    estimator.reset(estimated_state);
+    // Positive THETA_Y_CMD (pitch) should drive ball in -X direction
+    ControlVector ctrl = ControlVector::Zero();
+    ctrl(control_index::THETA_Y_CMD) = 0.05;  // ~3 degrees
 
-    Eigen::Vector2d setpoint(0.0, 0.0);
+    runFor(sim, 1.0, ctrl);
 
-    const double dt = 0.001;
+    const StateVector& final = sim.get_state();
+    EXPECT_LT(final(state_index::X), -0.01)
+        << "Positive THETA_Y should drive ball in -X direction";
 
-    // Run closed loop - estimator should converge to true state
-    for (int i = 0; i < 2000; ++i) {
-        const StateVector& x_hat = estimator.get_state();
-        ControlVector control = controller.compute(x_hat, setpoint, dt);
-        true_state = sim.step(true_state, control, dt);
+    // Y should remain near zero (pure pitch, no roll)
+    EXPECT_NEAR(final(state_index::Y), 0.0, 0.02)
+        << "Pure pitch should not drive ball in Y direction";
+}
 
-        // Provide true measurements to estimator
-        Eigen::Vector2d measurement(true_state(state_index::X), true_state(state_index::Y));
-        estimator.update(measurement);
-        estimator.predict(control);
+TEST(Integration, TiltDrivesBallInCorrectYDirection) {
+    SystemParameters p = defaultParams();
+    Simulator sim(p);
+
+    StateVector s = StateVector::Zero();
+    s(state_index::Z_BALL) = p.ball_radius;
+    sim.reset(s);
+
+    // Positive THETA_X_CMD (roll / phi) should drive ball in +Y direction
+    ControlVector ctrl = ControlVector::Zero();
+    ctrl(control_index::THETA_X_CMD) = 0.05;
+
+    runFor(sim, 1.0, ctrl);
+
+    const StateVector& final = sim.get_state();
+    EXPECT_GT(final(state_index::Y), 0.01)
+        << "Positive THETA_X should drive ball in +Y direction";
+
+    EXPECT_NEAR(final(state_index::X), 0.0, 0.02)
+        << "Pure roll should not drive ball in X direction";
+}
+
+TEST(Integration, ZTracksTableSurfaceDuringTilt) {
+    SystemParameters p = defaultParams();
+    Simulator sim(p);
+
+    StateVector s = StateVector::Zero();
+    s(state_index::Z_BALL) = p.ball_radius;
+    sim.reset(s);
+
+    ControlVector ctrl = ControlVector::Zero();
+    ctrl(control_index::THETA_Y_CMD) = 0.05;
+
+    runFor(sim, 1.0, ctrl);
+
+    const StateVector& final = sim.get_state();
+    const double x       = final(state_index::X);
+    const double theta_y = final(state_index::THETA_Y);
+    const double z_t     = final(state_index::Z_TABLE);
+
+    // Expected surface height at current (x, theta_y): z_surface = z_t + r + x*theta
+    const double z_surface_expected = z_t + p.ball_radius + x * theta_y;
+
+    // Ball should be within 2 mm of the tilted surface
+    EXPECT_NEAR(final(state_index::Z_BALL), z_surface_expected, 2e-3)
+        << "Ball Z should track tilted table surface";
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.3 — Free flight and bounce
+// ---------------------------------------------------------------------------
+
+TEST(Integration, BallDropsAndBouncesFromFreeFlightHeight) {
+    SystemParameters p = defaultParams();
+    Simulator sim(p);
+
+    // Place ball 10 cm above the flat table surface (free flight)
+    StateVector s = StateVector::Zero();
+    s(state_index::Z_BALL)  = p.ball_radius + 0.10;  // 10 cm above surface
+    s(state_index::VZ_BALL) = 0.0;
+    sim.reset(s);
+
+    EXPECT_FALSE(sim.isInContact())
+        << "Ball should start in free flight";
+
+    const ControlVector zero_ctrl = ControlVector::Zero();
+
+    // Free-fall from 10 cm: t = sqrt(2*0.1/9.81) ≈ 0.14 s.
+    // Run 0.5 s to observe at least one bounce.
+    runFor(sim, 0.5, zero_ctrl);
+
+    const StateVector& final = sim.get_state();
+
+    // After bounce ball must be at or above the table surface (not sunk through)
+    EXPECT_GE(final(state_index::Z_BALL), p.ball_radius - 1e-4)
+        << "Ball should be at or above table surface after bounce";
+}
+
+TEST(Integration, InelasticBallSettlesOnSurface) {
+    SystemParameters p = defaultParams();
+    p.bounce_coeff = 0.0;  // Fully inelastic — ball settles on surface
+    Simulator sim(p);
+
+    // Drop ball from 5 cm
+    StateVector s = StateVector::Zero();
+    s(state_index::Z_BALL) = p.ball_radius + 0.05;
+    sim.reset(s);
+
+    runFor(sim, 1.0, ControlVector::Zero());
+
+    // With zero bounce, ball should come to rest exactly on surface
+    EXPECT_TRUE(sim.isInContact())
+        << "Ball should be in contact after fully inelastic bounce";
+    EXPECT_NEAR(sim.get_state()(state_index::Z_BALL), p.ball_radius, 1e-4)
+        << "Ball should rest exactly on surface after inelastic bounce";
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.6 — Regression: horizontal dynamics
+// ---------------------------------------------------------------------------
+
+TEST(Integration, ProportionalControlDrivesBallTowardSetpoint) {
+    SystemParameters p = defaultParams();
+    Simulator sim(p);
+
+    // Ball starts at x=0.1 m, offset from centre
+    StateVector s = StateVector::Zero();
+    s(state_index::X)      = 0.10;
+    s(state_index::Z_BALL) = p.ball_radius;
+    sim.reset(s);
+
+    const double Kp = 0.5;     // Simple proportional gain
+    const double dt = 0.01;    // 100 Hz control loop
+    const int    N  = 800;     // 8 seconds
+
+    for (int i = 0; i < N; ++i) {
+        const StateVector& curr = sim.get_state();
+
+        // P-control: THETA_Y_CMD controls X axis
+        ControlVector ctrl = ControlVector::Zero();
+        ctrl(control_index::THETA_Y_CMD) = Kp * curr(state_index::X);
+
+        sim.step(dt, ctrl);
     }
 
-    // After 2 seconds, estimator should track true state closely
-    const StateVector& x_hat = estimator.get_state();
-
-    EXPECT_NEAR(x_hat(state_index::X), true_state(state_index::X), 0.01)
-        << "Estimator should converge to true X position";
-    EXPECT_NEAR(x_hat(state_index::Y), true_state(state_index::Y), 0.01)
-        << "Estimator should converge to true Y position";
-    EXPECT_NEAR(x_hat(state_index::VX), true_state(state_index::VX), 0.05)
-        << "Estimator should converge to true X velocity";
-    EXPECT_NEAR(x_hat(state_index::VY), true_state(state_index::VY), 0.05)
-        << "Estimator should converge to true Y velocity";
+    const double x_final = std::abs(sim.get_state()(state_index::X));
+    EXPECT_LT(x_final, 0.05)
+        << "P-control should reduce position error by at least 50% (from 0.10 m)";
 }
+
+} // namespace
+} // namespace ball_balancer
