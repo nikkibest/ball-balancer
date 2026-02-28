@@ -137,13 +137,29 @@ void MainWindow::render(
         control_panel_->render(state, controller, estimator);
     }
 
-    if (show_viewport_) {
-        render_viewport(state, renderer);
-    }
-
     // Plots panel rendered by RealTimePlotter
     if (show_plots_) {
         plotter.render();
+    }
+
+    // Draw 3D viewport overlays directly on the foreground draw list so they
+    // don't interfere with PassthruCentralNode (docking a window into the
+    // central node disables passthrough, hiding the OpenGL geometry).
+    {
+        ImGuiViewport* vp = ImGui::GetMainViewport();
+        ImVec2 vp_pos  = vp->WorkPos;
+        ImVec2 vp_size = vp->WorkSize;
+
+        // Ball position text in top-left of central area
+        ImDrawList* fg = ImGui::GetForegroundDrawList();
+        char buf[64];
+        snprintf(buf, sizeof(buf), "Ball: (%.3f, %.3f)",
+                 state(state_index::X), state(state_index::Y));
+        fg->AddText(ImVec2(vp_pos.x + 10.0f, vp_pos.y + 10.0f),
+                    IM_COL32(255, 255, 255, 200), buf);
+
+        // Axis labels projected from 3D world to screen
+        renderer.render_axis_labels(vp_pos, vp_size);
     }
 
     // Optional: Show ImGui demo window
