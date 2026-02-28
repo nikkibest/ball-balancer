@@ -147,10 +147,9 @@ void MainWindow::render(
     // central node disables passthrough, hiding the OpenGL geometry).
     {
         ImGuiViewport* vp = ImGui::GetMainViewport();
-        ImVec2 vp_pos  = vp->WorkPos;
-        ImVec2 vp_size = vp->WorkSize;
+        ImVec2 vp_pos = vp->WorkPos;
 
-        // Ball position text in top-left of central area
+        // Ball position text in top-left
         ImDrawList* fg = ImGui::GetForegroundDrawList();
         char buf[64];
         snprintf(buf, sizeof(buf), "Ball: (%.3f, %.3f)",
@@ -158,8 +157,8 @@ void MainWindow::render(
         fg->AddText(ImVec2(vp_pos.x + 10.0f, vp_pos.y + 10.0f),
                     IM_COL32(255, 255, 255, 200), buf);
 
-        // Axis labels projected from 3D world to screen
-        renderer.render_axis_labels(vp_pos, vp_size);
+        // Axis labels projected from 3D world to screen (uses renderer's own matrices)
+        renderer.render_axis_labels();
     }
 
     // Optional: Show ImGui demo window
@@ -308,31 +307,11 @@ void MainWindow::render_dockspace() {
 }
 
 void MainWindow::render_viewport(const StateVector& state, Renderer& renderer) {
-    // Make viewport window transparent to show 3D rendering underneath
-    ImGui::SetNextWindowBgAlpha(0.0f);  // Fully transparent background
-
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
-    ImGui::Begin("3D Viewport", &show_viewport_, flags);
-
-    // Get viewport content area position and size for overlay rendering
-    // GetWindowContentRegionMin() gives offset from window top-left to content start
-    ImVec2 win_pos       = ImGui::GetWindowPos();
-    ImVec2 content_min   = ImGui::GetWindowContentRegionMin();
-    ImVec2 viewport_pos  = ImVec2(win_pos.x + content_min.x, win_pos.y + content_min.y);
-    ImVec2 viewport_size = ImGui::GetContentRegionAvail();
-
-    // NOTE: The 3D scene is rendered to the full window framebuffer in application.cpp
-    // This viewport window is transparent, so the 3D rendering shows through
-
-    // Ball position overlay in corner
-    ImGui::SetCursorPos(ImVec2(10, 10));
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 0.8f), "Ball: (%.3f, %.3f)",
-                      state(state_index::X), state(state_index::Y));
-
-    // Draw axis labels (X/Y/Z) projected from 3D world to screen
-    renderer.render_axis_labels(viewport_pos, viewport_size);
-
-    ImGui::End();
+    (void)state;
+    (void)renderer;
+    // Viewport overlays are now drawn directly in render() via the foreground
+    // draw list to avoid disrupting PassthruCentralNode.  This function is
+    // kept to satisfy the header declaration but is no longer called.
 }
 
 void MainWindow::setup_default_layout() {

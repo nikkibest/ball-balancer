@@ -351,40 +351,48 @@ void Renderer::render(const StateVector& state) {
     }
 }
 
-void Renderer::render_axis_labels(ImVec2 viewport_pos, ImVec2 viewport_size) {
-    const float aspect = viewport_size.x / viewport_size.y;
+void Renderer::render_axis_labels() {
+    // Use the same aspect ratio and matrices as the actual 3D draw call so
+    // the projected positions always match the rendered axes regardless of
+    // window size or resize events.
+    const float aspect = static_cast<float>(width_) / static_cast<float>(height_);
     const Eigen::Matrix4f view = camera_.get_view_matrix();
     const Eigen::Matrix4f proj = Camera::get_projection_matrix(aspect);
     const Eigen::Matrix4f vp = proj * view;
 
-    // Project a 3D world point to 2D screen pixel position within the viewport
+    // The GL framebuffer covers the full OS window. ImGui's main viewport
+    // WorkPos/WorkSize describes that same region in screen pixels.
+    ImGuiViewport* main_vp = ImGui::GetMainViewport();
+    const ImVec2 vp_pos  = main_vp->WorkPos;
+    const float  vp_w    = static_cast<float>(width_);
+    const float  vp_h    = static_cast<float>(height_);
+
+    // Project a 3D world point to 2D screen pixel position
     auto project = [&](const Eigen::Vector3f& world_pos) -> ImVec2 {
         Eigen::Vector4f clip = vp * Eigen::Vector4f(world_pos.x(), world_pos.y(), world_pos.z(), 1.0f);
-
-        // Perspective divide -> NDC [-1, 1]
         if (std::abs(clip.w()) < 1e-6f) {
             return ImVec2(-9999.f, -9999.f);  // Behind camera
         }
         const float ndcX =  clip.x() / clip.w();
-        const float ndcY = -clip.y() / clip.w();  // Y flipped: OpenGL NDC Y-up, screen Y-down
+        const float ndcY = -clip.y() / clip.w();  // Y flipped: NDC Y-up → screen Y-down
 
-        // Map NDC to viewport pixel position
-        const float screenX = viewport_pos.x + (ndcX * 0.5f + 0.5f) * viewport_size.x;
-        const float screenY = viewport_pos.y + (ndcY * 0.5f + 0.5f) * viewport_size.y;
+        const float screenX = vp_pos.x + (ndcX * 0.5f + 0.5f) * vp_w;
+        const float screenY = vp_pos.y + (ndcY * 0.5f + 0.5f) * vp_h;
         return ImVec2(screenX, screenY);
     };
 
-    // Axis tip world positions (must match create_axes length = 0.5f)
+    // OpenGL axes in world space (must match create_axes length = 0.5f):
+    //   GL X  → physics X  (horizontal)
+    //   GL Y  → physics Z  (vertical / up)
+    //   GL Z  → physics Y  (horizontal, into screen)
     constexpr float axis_len = 0.5f;
     const ImVec2 tip_x = project(Eigen::Vector3f(axis_len, 0.0f,     0.0f));
-    const ImVec2 tip_y = project(Eigen::Vector3f(0.0f,     axis_len, 0.0f));
-    const ImVec2 tip_z = project(Eigen::Vector3f(0.0f,     0.0f,     axis_len));
+    const ImVec2 tip_z = project(Eigen::Vector3f(0.0f,     axis_len, 0.0f));  // GL Y = physics Z
+    const ImVec2 tip_y = project(Eigen::Vector3f(0.0f,     0.0f,     axis_len)); // GL Z = physics Y
 
-    // Use foreground draw list so labels appear on top without affecting
-    // the docked viewport window's passthrough behaviour
     ImDrawList* draw = ImGui::GetForegroundDrawList();
     const float font_size = ImGui::GetFontSize();
-    const float offset = 4.0f;  // Slight offset from axis tip
+    const float offset = 4.0f;
 
     draw->AddText(ImVec2(tip_x.x + offset, tip_x.y - font_size * 0.5f),
                   IM_COL32(255, 80,  80,  255), "X");

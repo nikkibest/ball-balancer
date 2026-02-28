@@ -113,6 +113,13 @@ bool Application::initialize() {
         }
     });
 
+    glfwSetFramebufferSizeCallback(window_, [](GLFWwindow* window, int width, int height) {
+        auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+        if (app && app->renderer_) {
+            app->renderer_->resize(width, height);
+        }
+    });
+
     // Load OpenGL functions using GLAD (desktop only)
     // Emscripten doesn't need GLAD - OpenGL ES functions are already available
 #ifndef __EMSCRIPTEN__
