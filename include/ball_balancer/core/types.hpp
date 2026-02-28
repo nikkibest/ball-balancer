@@ -223,7 +223,7 @@ namespace state_index {
     constexpr std::size_t Z_BALL = 2;    // Ball vertical position (m)
     constexpr std::size_t VX = 3;        // Ball x velocity (m/s)
     constexpr std::size_t VY = 4;        // Ball y velocity (m/s)
-    constexpr std::size_t VZ_BALL = 5;   // Ball vertical velocity (m/s) — stub, zero dynamics
+    constexpr std::size_t VZ_BALL = 5;   // Ball vertical velocity (m/s)
     constexpr std::size_t THETA_X = 6;   // Table tilt angle x (rad)
     constexpr std::size_t THETA_Y = 7;   // Table tilt angle y (rad)
     constexpr std::size_t Z_TABLE = 8;   // Table vertical translation (m) — stub, zero dynamics

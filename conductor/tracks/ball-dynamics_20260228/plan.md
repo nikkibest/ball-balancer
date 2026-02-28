@@ -115,10 +115,10 @@ Wire the new class into the existing RK4 loop, replacing the old simplified mode
 
 ### Tasks
 
-- [ ] **Task 3.1** — Add `BallDynamics ball_dynamics_` member to `Simulator` (header)
+- [x] **Task 3.1** — Add `BallDynamics ball_dynamics_` member to `Simulator` (header)
   - Initialise in constructor initialiser list: `ball_dynamics_(params)`
 
-- [ ] **Task 3.2** — Add `TableState buildTableState(const StateVector& state) const` private helper to `Simulator`
+- [x] **Task 3.2** — Add `TableState buildTableState(const StateVector& state) const` private helper to `Simulator`
   - Extract `phi = state(THETA_X)`, `theta = state(THETA_Y)`, `z_t = state(Z_TABLE)` from state
   - Compute `phi_dot` and `theta_dot` from servo dynamics:
     `phi_dot = (current_control_(THETA_X_CMD) - phi) / tau_servo`
@@ -126,7 +126,7 @@ Wire the new class into the existing RK4 loop, replacing the old simplified mode
   - `phi_ddot`, `theta_ddot`: forward-difference from previous step or set to zero (conservative)
   - `z_t_dot = 0`, `z_t_ddot = 0` (table Z stub — no actuation)
 
-- [ ] **Task 3.3** — Refactor `Simulator::dynamics()`:
+- [x] **Task 3.3** — Refactor `Simulator::dynamics()`:
   - Remove old simplified `ax_gravity`/`ay_gravity`/`friction` code
   - Call `TableState table = buildTableState(state)`
   - Call `ball_dynamics_.computeAccelerations(state, table, ax, ay, az)`
@@ -135,18 +135,18 @@ Wire the new class into the existing RK4 loop, replacing the old simplified mode
   - Keep servo dynamics unchanged: `dstate(THETA_X/Y) = (cmd - theta) / tau`
   - `dstate(Z_TABLE) = 0` (stub)
 
-- [ ] **Task 3.4** — Add post-step contact constraint enforcement in `Simulator::step()` (after RK4, before boundary clamp):
+- [x] **Task 3.4** — Add post-step contact constraint enforcement in `Simulator::step()` (after RK4, before boundary clamp):
   - Compute `z_surface = z_t + r + x*theta - y*phi`
   - If `ball_dynamics_.isInContact(state_, table)` and `state_(Z_BALL) < z_surface`:
     - Snap: `state_(Z_BALL) = z_surface`
     - Call `ball_dynamics_.applyBounce(state_, table)` if approaching
   - This prevents the ball from sinking through the table between steps
 
-- [ ] **Task 3.5** — Update `Simulator::reset()` initial state:
+- [x] **Task 3.5** — Update `Simulator::reset()` initial state:
   - Set `Z_BALL = Z_TABLE + ball_radius` (ball resting on flat table) in default reset
   - Update `make_initial_state()` helper in `types.hpp` accordingly
 
-- [ ] **Task 3.6** — Remove or update `compute_total_energy()` to include Z kinetic and potential energy
+- [x] **Task 3.6** — Remove or update `compute_total_energy()` to include Z kinetic and potential energy
 
 ### Verification
 

@@ -4,58 +4,41 @@
 
 /**
  * @file simulator.cpp
- * @brief Implementation of physics simulation for ball balancer
+ * @brief Physics simulation of ball on tilting table.
  *
- * Physics derivation (first principles):
+ * Ball equations of motion are fully delegated to BallDynamics.
+ * This file retains only:
+ *   - RK4 integration loop
+ *   - Servo dynamics (first-order lag for table angles)
+ *   - Post-step constraint enforcement (contact snap, bounce, boundary clamp)
+ *   - Measurement noise generation
  *
- * For a solid sphere rolling without slipping on an inclined plane:
+ * Axis convention (unchanged from project-wide convention):
+ *   THETA_X (phi)   = roll  around X → drives ball in Y
+ *   THETA_Y (theta) = pitch around Y → drives ball in X
  *
- * 1. Forces on ball:
- *    - Gravity component along slope: F_g = m*g*sin(θ)
- *    - Friction force: F_f = μ*m*g*cos(θ) (opposes motion)
- *    - Normal force: N = m*g*cos(θ)
- *
- * 2. Torque from friction (causes rotation):
- *    τ = F_f * r = I * α
- *
- * 3. No-slip condition:
- *    a = r * α  (linear accel = radius * angular accel)
- *
- * 4. For solid sphere: I = (2/5)*m*r²
- *
- * 5. Solving for acceleration:
- *    F_net = m*a = m*g*sin(θ) - F_f
- *    τ = F_f*r = I*α = I*(a/r)
- *    F_f = I*a/r²
- *
- *    Substituting:
- *    m*a = m*g*sin(θ) - I*a/r²
- *    a*(m + I/r²) = m*g*sin(θ)
- *    a = m*g*sin(θ) / (m + I/r²)
- *    a = g*sin(θ) / (1 + I/(m*r²))
- *
- *    For solid sphere: I/(m*r²) = (2/5)
- *    a = g*sin(θ) / (1 + 2/5) = (5/7)*g*sin(θ)
- *
- * @see research/ode-physical-system-modeling-cpp.md
+ * @see include/ball_balancer/physics/ball_dynamics.hpp for ball EOM derivation
  */
 
 namespace ball_balancer {
 
 Simulator::Simulator(const SystemParameters& params)
     : params_(params)
+    , ball_dynamics_(params)
     , state_(StateVector::Zero())
     , time_(0.0)
     , current_control_(ControlVector::Zero())
     , rng_(std::random_device{}())
     , noise_dist_(0.0, params.camera_noise_std)
 {
-    // Initialize derived parameters
     params_.initialize();
+
+    // Place ball resting on flat table at default position
+    state_(state_index::Z_BALL)  = params_.ball_radius;  // z_b = r (flat table, z_t=0)
+    state_(state_index::Z_TABLE) = 0.0;
 }
 
 void Simulator::step(double dt, const ControlVector& control) {
-    // Store control for use in ODE function
     current_control_ = control;
 
     // Clamp control inputs to physical limits
@@ -70,169 +53,179 @@ void Simulator::step(double dt, const ControlVector& control) {
         params_.max_tilt_angle
     );
 
-    // Integrate using RK4 (4th-order Runge-Kutta)
-    // Manual implementation for better control and no Boost dependency
+    // RK4 integration
     StateVector k1, k2, k3, k4;
-    StateVector temp_state;
+    StateVector temp;
 
-    // k1 = f(t, x)
     dynamics(state_, k1, time_);
 
-    // k2 = f(t + dt/2, x + dt*k1/2)
-    temp_state = state_ + (dt * 0.5) * k1;
-    dynamics(temp_state, k2, time_ + dt * 0.5);
+    temp = state_ + (dt * 0.5) * k1;
+    dynamics(temp, k2, time_ + dt * 0.5);
 
-    // k3 = f(t + dt/2, x + dt*k2/2)
-    temp_state = state_ + (dt * 0.5) * k2;
-    dynamics(temp_state, k3, time_ + dt * 0.5);
+    temp = state_ + (dt * 0.5) * k2;
+    dynamics(temp, k3, time_ + dt * 0.5);
 
-    // k4 = f(t + dt, x + dt*k3)
-    temp_state = state_ + dt * k3;
-    dynamics(temp_state, k4, time_ + dt);
+    temp = state_ + dt * k3;
+    dynamics(temp, k4, time_ + dt);
 
-    // x(t + dt) = x(t) + (dt/6)*(k1 + 2*k2 + 2*k3 + k4)
     state_ = state_ + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
 
-    // Enforce physical constraints (table boundaries)
+    // Post-step: enforce contact constraint and boundary conditions
     enforce_constraints();
 
-    // Update time
     time_ += dt;
 }
 
 void Simulator::reset(const StateVector& initial_state) {
     state_ = initial_state;
-    time_ = 0.0;
+    time_  = 0.0;
     current_control_.setZero();
 
-    // Ensure initial state respects constraints
+    // Ensure initial Z_BALL is at least on the table surface
+    const double z_t      = state_(state_index::Z_TABLE);
+    const double z_surface = z_t + params_.ball_radius;
+    if (state_(state_index::Z_BALL) < z_surface) {
+        state_(state_index::Z_BALL) = z_surface;
+    }
+
     enforce_constraints();
 }
 
 MeasurementVector Simulator::get_measurement() {
     MeasurementVector measurement;
-
-    // Extract ball position from state
-    measurement(measurement_index::X_MEAS) = state_(state_index::X);
-    measurement(measurement_index::Y_MEAS) = state_(state_index::Y);
-
-    // Add Gaussian noise to simulate camera measurement error
-    measurement(measurement_index::X_MEAS) += noise_dist_(rng_);
-    measurement(measurement_index::Y_MEAS) += noise_dist_(rng_);
-
+    measurement(measurement_index::X_MEAS) = state_(state_index::X) + noise_dist_(rng_);
+    measurement(measurement_index::Y_MEAS) = state_(state_index::Y) + noise_dist_(rng_);
     return measurement;
 }
 
 double Simulator::compute_total_energy() const {
-    const double m = params_.ball_mass;
-    const double r = params_.ball_radius;
-    const double g = params_.gravity;
-    const double I = params_.ball_inertia;
+    const double m  = params_.ball_mass;
+    const double r  = params_.ball_radius;
+    const double g  = params_.gravity;
+    const double I  = params_.ball_inertia;
 
-    // Extract state components
-    const double x = state_(state_index::X);
-    const double y = state_(state_index::Y);
-    const double vx = state_(state_index::VX);
-    const double vy = state_(state_index::VY);
-    const double theta_x = state_(state_index::THETA_X);
-    const double theta_y = state_(state_index::THETA_Y);
+    const double x   = state_(state_index::X);
+    const double y   = state_(state_index::Y);
+    const double z_b = state_(state_index::Z_BALL);
+    const double vx  = state_(state_index::VX);
+    const double vy  = state_(state_index::VY);
+    const double vz  = state_(state_index::VZ_BALL);
 
-    // Velocity magnitude
-    const double v = std::sqrt(vx*vx + vy*vy);
+    // Translational kinetic energy (full 3D)
+    const double v2      = vx*vx + vy*vy + vz*vz;
+    const double KE_trans = 0.5 * m * v2;
 
-    // Angular velocity (no-slip condition: ω = v/r)
-    const double omega = v / r;
-
-    // Kinetic energy: translational + rotational
-    const double KE_trans = 0.5 * m * v * v;
+    // Rotational kinetic energy (no-slip rolling, using horizontal speed)
+    const double vh    = std::sqrt(vx*vx + vy*vy);
+    const double omega = vh / r;
     const double KE_rot = 0.5 * I * omega * omega;
 
-    // Potential energy: height above lowest point
-    // Height h = x*sin(theta_x) + y*sin(theta_y) (small angle approximation)
-    const double h = x * std::sin(theta_x) + y * std::sin(theta_y) + r;
+    // Gravitational potential energy (full 3D height)
+    const double theta_x = state_(state_index::THETA_X);
+    const double theta_y = state_(state_index::THETA_Y);
+    // Height contribution from tilt (small-angle) + actual z_b
+    const double h  = z_b + x * std::sin(theta_y) + y * std::sin(theta_x);
     const double PE = m * g * h;
 
+    (void)x; (void)y;  // used via h above
     return KE_trans + KE_rot + PE;
 }
 
+// ----------------------------------------------------------------------------
+// Private helpers
+// ----------------------------------------------------------------------------
+
+TableState Simulator::buildTableState(const StateVector& state) const {
+    TableState table;
+
+    table.phi   = state(state_index::THETA_X);
+    table.theta = state(state_index::THETA_Y);
+    table.z_t   = state(state_index::Z_TABLE);
+
+    // Angular rates from first-order servo dynamics:
+    //   dtheta/dt = (cmd - theta) / tau_servo
+    const double tau = params_.servo_time_constant;
+    table.phi_dot   = (current_control_(control_index::THETA_X_CMD) - table.phi)   / tau;
+    table.theta_dot = (current_control_(control_index::THETA_Y_CMD) - table.theta) / tau;
+
+    // Angular accelerations: zero (conservative; avoids differencing across steps)
+    table.phi_ddot   = 0.0;
+    table.theta_ddot = 0.0;
+
+    // Table Z is a stub — no actuation
+    table.z_t_dot  = 0.0;
+    table.z_t_ddot = 0.0;
+
+    return table;
+}
+
 void Simulator::dynamics(const StateVector& state, StateDerivative& dstate, double /* t */) {
-    // Extract state components
-    const double x = state(state_index::X);
-    const double y = state(state_index::Y);
-    (void)x;  // Position not needed for dynamics (only for constraints)
-    (void)y;  // Position not needed for dynamics (only for constraints)
-    const double vx = state(state_index::VX);
-    const double vy = state(state_index::VY);
-    const double theta_x = state(state_index::THETA_X);
-    const double theta_y = state(state_index::THETA_Y);
+    const TableState table = buildTableState(state);
 
-    // Extract control commands
-    const double theta_x_cmd = current_control_(control_index::THETA_X_CMD);
-    const double theta_y_cmd = current_control_(control_index::THETA_Y_CMD);
+    // Ball accelerations from full 3D dynamics
+    double ax{0.0}, ay{0.0}, az{0.0};
+    ball_dynamics_.computeAccelerations(state, table, ax, ay, az);
 
-    // Physical constants
-    const double g = params_.gravity;
-    const double friction = params_.friction_coeff;
-    const double tau_servo = params_.servo_time_constant;
+    // Ball position derivatives = velocities
+    dstate(state_index::X)       = state(state_index::VX);
+    dstate(state_index::Y)       = state(state_index::VY);
+    dstate(state_index::Z_BALL)  = state(state_index::VZ_BALL);
 
-    // Ball rolling acceleration (from first principles derivation)
-    // For solid sphere: a = (5/7) * g * sin(theta)
-    // This factor accounts for rotational inertia (no-slip rolling)
-    constexpr double rolling_factor = 5.0 / 7.0;
+    // Ball velocity derivatives = accelerations
+    dstate(state_index::VX)      = ax;
+    dstate(state_index::VY)      = ay;
+    dstate(state_index::VZ_BALL) = az;
 
-    // Acceleration due to gravity on tilted surface
-    // Rotation around X-axis (theta_x) tilts table in Y-direction -> ball accelerates in Y
-    // Rotation around Y-axis (theta_y) tilts table in X-direction -> ball accelerates in X
-    // Negative signs: positive tilt angle should cause ball to roll in negative direction (down the slope)
-    const double ax_gravity = -rolling_factor * g * std::sin(theta_y);  // theta_y affects X (negated)
-    const double ay_gravity = -rolling_factor * g * std::sin(theta_x);  // theta_x affects Y (negated)
+    // Servo dynamics (first-order lag): dtheta/dt = (cmd - theta) / tau
+    const double tau = params_.servo_time_constant;
+    dstate(state_index::THETA_X) =
+        (current_control_(control_index::THETA_X_CMD) - state(state_index::THETA_X)) / tau;
+    dstate(state_index::THETA_Y) =
+        (current_control_(control_index::THETA_Y_CMD) - state(state_index::THETA_Y)) / tau;
 
-    // Friction opposes motion (viscous damping model)
-    const double ax_friction = -friction * vx;
-    const double ay_friction = -friction * vy;
-
-    // Total acceleration
-    const double ax = ax_gravity + ax_friction;
-    const double ay = ay_gravity + ay_friction;
-
-    // State derivatives (first-order ODE form)
-    dstate(state_index::X) = vx;                              // dx/dt = vx
-    dstate(state_index::Y) = vy;                              // dy/dt = vy
-    dstate(state_index::Z_BALL) = 0.0;                        // dz_ball/dt = 0 (stub: no vertical dynamics)
-    dstate(state_index::VX) = ax;                             // dvx/dt = ax
-    dstate(state_index::VY) = ay;                             // dvy/dt = ay
-    dstate(state_index::VZ_BALL) = 0.0;                       // dvz_ball/dt = 0 (stub)
-
-    // Servo dynamics (first-order response to commanded angle)
-    // θ' = (θ_cmd - θ) / τ  (exponential approach to commanded angle)
-    dstate(state_index::THETA_X) = (theta_x_cmd - theta_x) / tau_servo;
-    dstate(state_index::THETA_Y) = (theta_y_cmd - theta_y) / tau_servo;
-
-    dstate(state_index::Z_TABLE) = 0.0;                       // dz_table/dt = 0 (stub: no vertical dynamics)
+    // Table Z: stub, no dynamics
+    dstate(state_index::Z_TABLE) = 0.0;
 }
 
 void Simulator::enforce_constraints() {
-    // Table dimensions (centered at origin)
-    const double half_length = params_.table_length / 2.0;
-    const double half_width = params_.table_width / 2.0;
-    const double bounce_coeff = params_.bounce_coeff;
+    const TableState table = buildTableState(state_);
 
-    // Clamp X position and reverse velocity at boundaries
-    if (state_(state_index::X) > half_length) {
-        state_(state_index::X) = half_length;
-        state_(state_index::VX) = -bounce_coeff * state_(state_index::VX);
-    } else if (state_(state_index::X) < -half_length) {
-        state_(state_index::X) = -half_length;
-        state_(state_index::VX) = -bounce_coeff * state_(state_index::VX);
+    // --- Contact constraint ---
+    // Surface height at current (x, y) under small-angle approximation
+    const double x   = state_(state_index::X);
+    const double y   = state_(state_index::Y);
+    const double z_surface = table.z_t
+        + params_.ball_radius
+        + x * table.theta
+        - y * table.phi;
+
+    if (state_(state_index::Z_BALL) < z_surface) {
+        // Ball has penetrated the table — snap it to the surface
+        state_(state_index::Z_BALL) = z_surface;
+
+        // Apply coefficient-of-restitution bounce if approaching
+        ball_dynamics_.applyBounce(state_, table);
     }
 
-    // Clamp Y position and reverse velocity at boundaries
+    // --- Table boundary clamp (X / Y) ---
+    const double half_len   = params_.table_length / 2.0;
+    const double half_width = params_.table_width  / 2.0;
+    const double bounce     = params_.bounce_coeff;
+
+    if (state_(state_index::X) > half_len) {
+        state_(state_index::X)  = half_len;
+        state_(state_index::VX) = -bounce * state_(state_index::VX);
+    } else if (state_(state_index::X) < -half_len) {
+        state_(state_index::X)  = -half_len;
+        state_(state_index::VX) = -bounce * state_(state_index::VX);
+    }
+
     if (state_(state_index::Y) > half_width) {
-        state_(state_index::Y) = half_width;
-        state_(state_index::VY) = -bounce_coeff * state_(state_index::VY);
+        state_(state_index::Y)  = half_width;
+        state_(state_index::VY) = -bounce * state_(state_index::VY);
     } else if (state_(state_index::Y) < -half_width) {
-        state_(state_index::Y) = -half_width;
-        state_(state_index::VY) = -bounce_coeff * state_(state_index::VY);
+        state_(state_index::Y)  = -half_width;
+        state_(state_index::VY) = -bounce * state_(state_index::VY);
     }
 }
 

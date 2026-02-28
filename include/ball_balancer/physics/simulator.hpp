@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ball_balancer/core/types.hpp>
+#include <ball_balancer/physics/ball_dynamics.hpp>
 #include <random>
 
 /**
@@ -120,21 +121,34 @@ private:
      * @param dstate Output: state derivative
      * @param t Current time
      *
-     * Implements ball rolling dynamics with servo response.
+     * Delegates ball acceleration to BallDynamics; servo dynamics remain here.
      */
     void dynamics(const StateVector& state, StateDerivative& dstate, double t);
 
     /**
-     * @brief Clamp ball position to table boundaries
+     * @brief Build a TableState snapshot from the current state vector.
      *
-     * Prevents ball from rolling off table by:
-     * - Clamping position to [-length/2, length/2] x [-width/2, width/2]
-     * - Reversing velocity at boundaries (bounce with energy loss)
+     * Angular rates are derived from servo dynamics (first-order response).
+     * Angular accelerations are set to zero (conservative approximation).
+     * Table Z velocity and acceleration are zero (table Z is a stub).
+     */
+    TableState buildTableState(const StateVector& state) const;
+
+    /**
+     * @brief Enforce contact constraint and table boundary conditions.
+     *
+     * After each RK4 step:
+     *  1. Snap ball Z to table surface if it has penetrated (contact mode).
+     *  2. Apply bounce if the ball was approaching the surface.
+     *  3. Clamp X/Y to table boundaries with elastic rebound.
      */
     void enforce_constraints();
 
     // System parameters
     SystemParameters params_;
+
+    // Ball dynamics engine (encapsulates full 3D EOM)
+    BallDynamics ball_dynamics_;
 
     // Current state
     StateVector state_;
