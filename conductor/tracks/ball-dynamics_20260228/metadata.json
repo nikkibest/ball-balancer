@@ -1,0 +1,16 @@
+{
+  "id": "ball-dynamics_20260228",
+  "title": "Full Ball Dynamics Implementation",
+  "type": "feature",
+  "status": "complete",
+  "created": "2026-02-28T00:00:00Z",
+  "updated": "2026-02-28T00:00:00Z",
+  "phases": {
+    "total": 6,
+    "completed": 6
+  },
+  "tasks": {
+    "total": 28,
+    "completed": 28
+  }
+}
