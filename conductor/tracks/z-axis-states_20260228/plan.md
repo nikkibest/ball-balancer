@@ -3,7 +3,7 @@
 **Track ID:** z-axis-states_20260228
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-02-28
-**Status:** [~] In Progress
+**Status:** [x] Complete
 
 ## Overview
 
@@ -82,36 +82,36 @@ Update the 3D renderer to use the new z-states and add axis labels. Extend the p
 ### Tasks
 
 #### Renderer
-- [ ] Task 4.1: In `src/rendering/renderer.cpp`, update ball position transform to use `state[state_index::Z_BALL]` for the Y (up) component (or Z, depending on OpenGL coordinate convention — verify against current up-axis)
-- [ ] Task 4.2: Update table position transform to translate by `state[state_index::Z_TABLE]` along the vertical axis
-- [ ] Task 4.3: Add axis label rendering for "X", "Y", "Z": implement as small text rendered via ImGui overlay (project 3D tip positions to screen coords using the MVP matrix) or as 3D geometry quads
-- [ ] Task 4.4: Verify existing table roll/pitch (theta\_x, theta\_y) rendering is unaffected
+- [x] Task 4.1: In `src/rendering/renderer.cpp`, update ball position transform to use `state[state_index::Z_BALL]` for the Y (up) component (or Z, depending on OpenGL coordinate convention — verify against current up-axis)
+- [x] Task 4.2: Update table position transform to translate by `state[state_index::Z_TABLE]` along the vertical axis
+- [x] Task 4.3: Add axis label rendering for "X", "Y", "Z": implement as small text rendered via ImGui overlay (project 3D tip positions to screen coords using the MVP matrix) or as 3D geometry quads
+- [x] Task 4.4: Verify existing table roll/pitch (theta\_x, theta\_y) rendering is unaffected
 
 #### Plotter / Data Manager
-- [ ] Task 4.5: In `include/ball_balancer/visualization/data_manager.hpp`, add fields for `z_ball`, `vz_ball`, `z_table` to the data record struct
-- [ ] Task 4.6: In `src/visualization/data_manager.cpp`, update `push()` to store the new state fields
-- [ ] Task 4.7: In `src/visualization/real_time_plotter.cpp`, add ImPlot lines/plots for `z_ball` and `z_table` (e.g., in a new "Z Position" subplot, or add as lines to the existing position plot)
-- [ ] Task 4.8: Update `DataManager` ring buffer arrays (or `std::array` fields) to include the new data channels
+- [x] Task 4.5: In `include/ball_balancer/visualization/data_manager.hpp`, add fields for `z_ball`, `vz_ball`, `z_table` to the data record struct
+- [x] Task 4.6: In `src/visualization/data_manager.cpp`, update `push()` to store the new state fields
+- [x] Task 4.7: In `src/visualization/real_time_plotter.cpp`, add ImPlot lines/plots for `z_ball` and `z_table` (e.g., in a new "Z Position" subplot, or add as lines to the existing position plot)
+- [x] Task 4.8: Update `DataManager` ring buffer arrays (or `std::array` fields) to include the new data channels
 
 ### Verification
 
-- [ ] Moving `z_ball` slider moves the ball up/down in the 3D view
-- [ ] Moving `z_table` slider moves the table platform up/down in the 3D view
-- [ ] "X", "Y", "Z" labels appear at the correct axes in the 3D viewport
-- [ ] Real-time plotter shows `z_ball` and `z_table` traces
-- [ ] No existing plot (x, y, control signals, errors) is broken
+- [x] Moving `z_ball` slider moves the ball up/down in the 3D view
+- [x] Moving `z_table` slider moves the table platform up/down in the 3D view
+- [x] "X", "Y", "Z" labels appear at the correct axes in the 3D viewport
+- [x] Real-time plotter shows `z_ball` and `z_table` traces
+- [x] No existing plot (x, y, control signals, errors) is broken
 
 ---
 
 ## Final Verification
 
-- [ ] All acceptance criteria in `spec.md` are met
-- [ ] Project compiles in Debug and Release without warnings
-- [ ] Application runs without crash; simulation pause/resume cycle works correctly
-- [ ] All 6 manual-state sliders respond correctly when paused
-- [ ] 3D rendering correctly reflects all 6 states simultaneously
-- [ ] Axis labels visible and correctly placed
-- [ ] Plotter includes z-state channels
+- [x] All acceptance criteria in `spec.md` are met
+- [x] Project compiles in Debug and Release without warnings
+- [x] Application runs without crash; simulation pause/resume cycle works correctly
+- [x] All 6 manual-state sliders respond correctly when paused
+- [x] 3D rendering correctly reflects all 6 states simultaneously
+- [x] Axis labels visible and correctly placed
+- [x] Plotter includes z-state channels
 
 ---
 
