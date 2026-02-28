@@ -340,7 +340,7 @@ void Renderer::render(const StateVector& state) {
             Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
             model(0, 3) = ball_x;        // X maps to X
             model(1, 3) = ball_z;        // Z (height) maps to Y (up in OpenGL)
-            model(2, 3) = -ball_y;       // Y maps to -Z (OpenGL Z points toward viewer)
+            model(2, 3) = ball_y;        // Y maps to +Z (positive physics Y → positive GL Z)
 
             Eigen::Matrix3f normal_matrix = model.topLeftCorner<3, 3>();
 

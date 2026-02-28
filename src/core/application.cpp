@@ -267,10 +267,11 @@ void main_loop_iteration() {
 
         // ----------------------------------------------------------------
         // Keyboard camera controls (hold SHIFT)
-        // SHIFT+W/S  : pan up/down
-        // SHIFT+A/D  : pan left/right
-        // SHIFT+Q/E  : rotate left/right (azimuth)
-        // SHIFT+Up/Down : zoom in/out
+        // SHIFT+W/S    : pan up/down
+        // SHIFT+A/D    : pan left/right
+        // SHIFT+Q/E    : rotate left/right (azimuth)
+        // SHIFT+Z/X    : orbit up/down (elevation)
+        // SHIFT+Up/Down: zoom in/out
         // ----------------------------------------------------------------
         bool shift_pressed = (glfwGetKey(app->window_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) ||
                              (glfwGetKey(app->window_, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS);
@@ -293,6 +294,10 @@ void main_loop_iteration() {
                 cam.rotate( rotate_speed, 0.0f);
             if (glfwGetKey(app->window_, GLFW_KEY_E) == GLFW_PRESS)
                 cam.rotate(-rotate_speed, 0.0f);
+            if (glfwGetKey(app->window_, GLFW_KEY_Z) == GLFW_PRESS)
+                cam.rotate(0.0f,  rotate_speed);
+            if (glfwGetKey(app->window_, GLFW_KEY_X) == GLFW_PRESS)
+                cam.rotate(0.0f, -rotate_speed);
             if (glfwGetKey(app->window_, GLFW_KEY_UP) == GLFW_PRESS)
                 cam.zoom(-zoom_speed);
             if (glfwGetKey(app->window_, GLFW_KEY_DOWN) == GLFW_PRESS)
