@@ -196,6 +196,11 @@ private:
     // Camera
     Camera camera_;
 
+    // Cached view-projection matrix from the most recent render() call.
+    // render_axis_labels() reuses this so labels are guaranteed to use the
+    // exact same transform as the 3D geometry.
+    Eigen::Matrix4f last_vp_;
+
     // Shaders (RAII)
     std::unique_ptr<Shader> basic_shader_;
     std::unique_ptr<Shader> grid_shader_;

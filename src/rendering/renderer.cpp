@@ -128,6 +128,7 @@ Renderer::Renderer()
     : width_(800)
     , height_(600)
     , camera_(Eigen::Vector3f(0.0f, 0.3f, 0.0f), 2.0f, 0.785f, 0.524f)  // Look at table center (slight Y offset), reasonable distance
+    , last_vp_(Eigen::Matrix4f::Identity())
 {
     params_.initialize();
 }
@@ -235,6 +236,9 @@ void Renderer::render(const StateVector& state) {
     float aspect = static_cast<float>(width_) / static_cast<float>(height_);
     Eigen::Matrix4f view = camera_.get_view_matrix();
     Eigen::Matrix4f proj = Camera::get_projection_matrix(aspect);
+
+    // Cache VP so render_axis_labels() uses the EXACT same transform
+    last_vp_ = proj * view;
 
     // ========================================================================
     // Render Grid Floor and Axes (shared shader)
@@ -352,31 +356,31 @@ void Renderer::render(const StateVector& state) {
 }
 
 void Renderer::render_axis_labels(ImVec2 clip_min, ImVec2 clip_max) {
-    // Use the same matrices as the actual 3D draw call so projected positions
-    // always match the rendered geometry regardless of window size.
-    const float aspect = static_cast<float>(width_) / static_cast<float>(height_);
-    const Eigen::Matrix4f view = camera_.get_view_matrix();
-    const Eigen::Matrix4f proj = Camera::get_projection_matrix(aspect);
-    const Eigen::Matrix4f vp   = proj * view;
-
-    // The GL framebuffer always starts at the OS window origin (0, 0).
-    // ImGui's main viewport Pos gives us that origin in screen space.
+    // Reuse the exact VP matrix cached during render() so the labels are
+    // guaranteed to use the same transform as the 3D geometry.
+    // Map NDC → screen using the same dimensions the GL viewport covers.
+    // The GL viewport is always the full GLFW window, and ImGui's main
+    // viewport Pos is the window's top-left in OS screen coordinates.
     const ImGuiViewport* main_vp = ImGui::GetMainViewport();
-    const float fb_x = main_vp->Pos.x;   // OS window top-left X
-    const float fb_y = main_vp->Pos.y;   // OS window top-left Y
-    const float fb_w = static_cast<float>(width_);
-    const float fb_h = static_cast<float>(height_);
+    const float orig_x = main_vp->Pos.x;
+    const float orig_y = main_vp->Pos.y;
 
-    // Project a 3D world point → 2D framebuffer pixel
+    // Screen dimensions: use DisplaySize (logical pixels, same space as ImGui)
+    // On non-HiDPI Linux this equals width_/height_ exactly.
+    const ImGuiIO& io = ImGui::GetIO();
+    const float sc_w = (io.DisplaySize.x > 0.0f) ? io.DisplaySize.x : static_cast<float>(width_);
+    const float sc_h = (io.DisplaySize.y > 0.0f) ? io.DisplaySize.y : static_cast<float>(height_);
+
+    // Project a 3D world point → 2D screen position (logical pixels)
     auto project = [&](const Eigen::Vector3f& world_pos) -> ImVec2 {
-        Eigen::Vector4f clip = vp * Eigen::Vector4f(world_pos.x(), world_pos.y(), world_pos.z(), 1.0f);
+        Eigen::Vector4f clip = last_vp_ * Eigen::Vector4f(world_pos.x(), world_pos.y(), world_pos.z(), 1.0f);
         if (std::abs(clip.w()) < 1e-6f) {
             return ImVec2(-9999.f, -9999.f);
         }
         const float ndcX =  clip.x() / clip.w();
         const float ndcY = -clip.y() / clip.w();  // NDC Y-up → screen Y-down
-        return ImVec2(fb_x + (ndcX * 0.5f + 0.5f) * fb_w,
-                      fb_y + (ndcY * 0.5f + 0.5f) * fb_h);
+        return ImVec2(orig_x + (ndcX * 0.5f + 0.5f) * sc_w,
+                      orig_y + (ndcY * 0.5f + 0.5f) * sc_h);
     };
 
     // Axis tips in OpenGL world space (matches create_axes length = 0.5f):
