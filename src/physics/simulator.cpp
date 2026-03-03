@@ -14,7 +14,7 @@
  *   - Measurement noise generation
  *
  * Axis convention (unchanged from project-wide convention):
- *   THETA_X (phi)   = roll  around X → drives ball in Y
+ *   VARPHI_X (phi)   = roll  around X → drives ball in Y
  *   THETA_Y (theta) = pitch around Y → drives ball in X
  *
  * @see include/ball_balancer/physics/ball_dynamics.hpp for ball EOM derivation
@@ -42,8 +42,8 @@ void Simulator::step(double dt, const ControlVector& control) {
     current_control_ = control;
 
     // Clamp control inputs to physical limits
-    current_control_(control_index::THETA_X_CMD) = std::clamp(
-        current_control_(control_index::THETA_X_CMD),
+    current_control_(control_index::VARPHI_X_CMD) = std::clamp(
+        current_control_(control_index::VARPHI_X_CMD),
         -params_.max_tilt_angle,
         params_.max_tilt_angle
     );
@@ -51,6 +51,11 @@ void Simulator::step(double dt, const ControlVector& control) {
         current_control_(control_index::THETA_Y_CMD),
         -params_.max_tilt_angle,
         params_.max_tilt_angle
+    );
+    current_control_(control_index::TABLE_Z_CMD) = std::clamp(
+        current_control_(control_index::TABLE_Z_CMD),
+        params_.min_table_height,
+        params_.max_table_height
     );
 
     // RK4 integration
@@ -121,10 +126,10 @@ double Simulator::compute_total_energy() const {
     const double KE_rot = 0.5 * I * omega * omega;
 
     // Gravitational potential energy (full 3D height)
-    const double theta_x = state_(state_index::THETA_X);
+    const double varphi_x = state_(state_index::VARPHI_X);
     const double theta_y = state_(state_index::THETA_Y);
     // Height contribution from tilt (small-angle) + actual z_b
-    const double h  = z_b + x * std::sin(theta_y) + y * std::sin(theta_x);
+    const double h  = z_b + x * std::sin(theta_y) + y * std::sin(varphi_x);
     const double PE = m * g * h;
 
     (void)x; (void)y;  // used via h above
@@ -138,22 +143,20 @@ double Simulator::compute_total_energy() const {
 TableState Simulator::buildTableState(const StateVector& state) const {
     TableState table;
 
-    table.phi   = state(state_index::THETA_X);
+    table.phi   = state(state_index::VARPHI_X);
     table.theta = state(state_index::THETA_Y);
     table.z_t   = state(state_index::Z_TABLE);
 
     // Angular rates from first-order servo dynamics:
     //   dtheta/dt = (cmd - theta) / tau_servo
     const double tau = params_.servo_time_constant;
-    table.phi_dot   = (current_control_(control_index::THETA_X_CMD) - table.phi)   / tau;
+    table.phi_dot   = (current_control_(control_index::VARPHI_X_CMD) - table.phi)   / tau;
     table.theta_dot = (current_control_(control_index::THETA_Y_CMD) - table.theta) / tau;
+    table.z_t_dot   = (current_control_(control_index::TABLE_Z_CMD) - table.z_t)   / tau;
 
     // Angular accelerations: zero (conservative; avoids differencing across steps)
     table.phi_ddot   = 0.0;
     table.theta_ddot = 0.0;
-
-    // Table Z is a stub — no actuation
-    table.z_t_dot  = 0.0;
     table.z_t_ddot = 0.0;
 
     return table;
@@ -178,13 +181,12 @@ void Simulator::dynamics(const StateVector& state, StateDerivative& dstate, doub
 
     // Servo dynamics (first-order lag): dtheta/dt = (cmd - theta) / tau
     const double tau = params_.servo_time_constant;
-    dstate(state_index::THETA_X) =
-        (current_control_(control_index::THETA_X_CMD) - state(state_index::THETA_X)) / tau;
+    dstate(state_index::VARPHI_X) =
+        (current_control_(control_index::VARPHI_X_CMD) - state(state_index::VARPHI_X)) / tau;
     dstate(state_index::THETA_Y) =
         (current_control_(control_index::THETA_Y_CMD) - state(state_index::THETA_Y)) / tau;
-
-    // Table Z: stub, no dynamics
-    dstate(state_index::Z_TABLE) = 0.0;
+    dstate(state_index::Z_TABLE) =
+        (current_control_(control_index::TABLE_Z_CMD) - state(state_index::Z_TABLE)) / tau;
 }
 
 void Simulator::enforce_constraints() {
@@ -203,8 +205,16 @@ void Simulator::enforce_constraints() {
         // Ball has penetrated the table — snap it to the surface
         state_(state_index::Z_BALL) = z_surface;
 
-        // Apply coefficient-of-restitution bounce if approaching
+        // Apply coefficient-of-restitution bounce if approaching.
+        // applyBounce also clamps VZ_BALL to match the table surface velocity
+        // (handles the case where the table rises and carries the ball with it).
         ball_dynamics_.applyBounce(state_, table);
+
+        // If after bounce VZ_BALL is still below z_t_dot, clamp to table velocity
+        // so the ball rides with the rising/falling table rather than tunnelling.
+        if (state_(state_index::VZ_BALL) < table.z_t_dot) {
+            state_(state_index::VZ_BALL) = table.z_t_dot;
+        }
     }
 
     // --- Table boundary clamp (X / Y) ---

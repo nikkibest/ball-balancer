@@ -11,22 +11,22 @@
  * interface contract between agents (Physics, Control, Eigen, etc.).
  *
  * State Space Representation:
- * - State vector (9D): [x, y, z_ball, vx, vy, vz_ball, theta_x, theta_y, z_table]
+ * - State vector (9D): [x, y, z_ball, vx, vy, vz_ball, varphi_x, theta_y, z_table]
  *   * x, y: Ball horizontal position on table surface (meters)
  *   * z_ball: Ball vertical position (meters)
  *   * vx, vy: Ball horizontal velocity (m/s)
  *   * vz_ball: Ball vertical velocity (m/s)
- *   * theta_x, theta_y: Table tilt angles (radians)
+ *   * varphi_x, theta_y: Table tilt angles (radians)
  *   * z_table: Table vertical translation (meters)
  *
- * - Control vector (2D): [theta_x_cmd, theta_y_cmd]
+ * - Control vector (2D): [varphi_x_cmd, theta_y_cmd]
  *   * Commanded table tilt angles (radians)
  *
  * - Measurement vector (2D): [x_meas, y_meas]
  *   * Ball position from camera (meters)
  *
- * Note: z_ball, vz_ball, and z_table have zero dynamics in the current
- * simulator. They are set manually via the GUI and reflected in rendering.
+ * Note: z_table has no actuation — it is set manually via the GUI.
+ * z_ball and vz_ball are fully live states driven by BallDynamics.
  *
  * @see research/eigen-cpp-linear-algebra-best-practices.md
  * @see research/ode-physical-system-modeling-cpp.md
@@ -41,23 +41,24 @@ namespace ball_balancer {
 /**
  * @brief System state vector (9D)
  *
- * Layout: [x, y, z_ball, vx, vy, vz_ball, theta_x, theta_y, z_table]
+ * Layout: [x, y, z_ball, vx, vy, vz_ball, varphi_x, theta_y, z_table]
  * - x, y: Ball horizontal position (m)
  * - z_ball: Ball vertical position (m)
  * - vx, vy: Ball horizontal velocity (m/s)
- * - vz_ball: Ball vertical velocity (m/s) — zero dynamics (stub)
- * - theta_x, theta_y: Table tilt angles (rad)
- * - z_table: Table vertical translation (m) — zero dynamics (stub)
+ * - vz_ball: Ball vertical velocity (m/s)
+ * - varphi_x, theta_y: Table tilt angles (rad)
+ * - z_table: Table vertical translation (m) — no actuation (table Z stub)
  */
 using StateVector = Eigen::Matrix<double, 9, 1>;
 
 /**
  * @brief Control input vector (2D)
  *
- * Layout: [theta_x_cmd, theta_y_cmd]
+ * Layout: [varphi_x_cmd, theta_y_cmd, table_z_cmd]
  * - Commanded table tilt angles (rad)
+ * - Commanded table height (m)
  */
-using ControlVector = Eigen::Matrix<double, 2, 1>;
+using ControlVector = Eigen::Matrix<double, 3, 1>;
 
 /**
  * @brief Measurement vector (2D)
@@ -88,11 +89,12 @@ using StateDerivative = StateVector;
 using SystemMatrix = Eigen::Matrix<double, 9, 9>;
 
 /**
- * @brief Control input matrix B (9x2)
+ * @brief Control input matrix B (9x3)
  *
- * Maps control inputs to state derivatives
+ * Maps control inputs to state derivatives.
+ * Third column (TABLE_Z_CMD) is zero — table Z has no linearized servo dynamics.
  */
-using ControlMatrix = Eigen::Matrix<double, 9, 2>;
+using ControlMatrix = Eigen::Matrix<double, 9, 3>;
 
 /**
  * @brief Measurement matrix C (2x9)
@@ -171,6 +173,8 @@ struct SystemParameters {
     double table_length{0.5};          // Table dimension X (m)
     double table_width{0.5};           // Table dimension Y (m)
     double max_tilt_angle{0.174};      // Max tilt angle (rad) = 10 degrees
+    double min_table_height{0.0};      // Minimum table height (m)
+    double max_table_height{0.5};      // Maximum table height (m)
 
     // Servo dynamics (simplified first-order)
     double servo_time_constant{0.05};  // Servo response time (s)
@@ -224,14 +228,15 @@ namespace state_index {
     constexpr std::size_t VX = 3;        // Ball x velocity (m/s)
     constexpr std::size_t VY = 4;        // Ball y velocity (m/s)
     constexpr std::size_t VZ_BALL = 5;   // Ball vertical velocity (m/s)
-    constexpr std::size_t THETA_X = 6;   // Table tilt angle x (rad)
+    constexpr std::size_t VARPHI_X = 6;   // Table tilt angle x (rad)
     constexpr std::size_t THETA_Y = 7;   // Table tilt angle y (rad)
-    constexpr std::size_t Z_TABLE = 8;   // Table vertical translation (m) — stub, zero dynamics
+    constexpr std::size_t Z_TABLE = 8;   // Table vertical translation (m) — no actuation
 }
 
 namespace control_index {
-    constexpr std::size_t THETA_X_CMD = 0;  // Commanded tilt x
+    constexpr std::size_t VARPHI_X_CMD = 0;  // Commanded tilt x
     constexpr std::size_t THETA_Y_CMD = 1;  // Commanded tilt y
+    constexpr std::size_t TABLE_Z_CMD = 2; // Commanded table height z
 }
 
 namespace measurement_index {
@@ -265,14 +270,15 @@ inline StateVector make_initial_state(
 
 /**
  * @brief Create control vector from tilt angles
- * @param theta_x Table tilt angle X (rad)
+ * @param varphi_x Table tilt angle X (rad)
  * @param theta_y Table tilt angle Y (rad)
  * @return Control vector
  */
-inline ControlVector make_control(double theta_x, double theta_y) {
+inline ControlVector make_control(double varphi_x, double theta_y, double table_z = 0.0) {
     ControlVector control;
-    control(control_index::THETA_X_CMD) = theta_x;
+    control(control_index::VARPHI_X_CMD) = varphi_x;
     control(control_index::THETA_Y_CMD) = theta_y;
+    control(control_index::TABLE_Z_CMD) = table_z;
     return control;
 }
 
