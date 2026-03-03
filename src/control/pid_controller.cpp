@@ -183,13 +183,13 @@ ControlVector PIDController::compute(
     // Compute control for each axis
     // NOTE: Axes are swapped because:
     //   - To control X position, we tilt around Y-axis (theta_y)
-    //   - To control Y position, we tilt around X-axis (theta_x)
-    double theta_x_cmd = pid_y_.compute(setpoint.y(), y);  // Y setpoint -> theta_x (swapped)
+    //   - To control Y position, we tilt around X-axis (varphi_x)
+    double varphi_x_cmd = pid_y_.compute(setpoint.y(), y);  // Y setpoint -> varphi_x (swapped)
     double theta_y_cmd = pid_x_.compute(setpoint.x(), x);  // X setpoint -> theta_y (swapped)
 
     // Return control vector
     ControlVector control;
-    control(control_index::THETA_X_CMD) = theta_x_cmd;
+    control(control_index::VARPHI_X_CMD) = varphi_x_cmd;
     control(control_index::THETA_Y_CMD) = theta_y_cmd;
 
     return control;

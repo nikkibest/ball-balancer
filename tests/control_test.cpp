@@ -19,10 +19,10 @@ using namespace ball_balancer;
 /**
  * Critical regression test for the Kalman filter axis mismatch.
  *
- * BUG (before fix): StateEstimator A-matrix had VX driven by THETA_Y instead of THETA_X
- * FIX: Changed Ac(state_index::VX, state_index::THETA_Y) to Ac(state_index::VX, state_index::THETA_X)
+ * BUG (before fix): StateEstimator A-matrix had VX driven by THETA_Y instead of VARPHI_X
+ * FIX: Changed Ac(state_index::VX, state_index::THETA_Y) to Ac(state_index::VX, state_index::VARPHI_X)
  *
- * This test verifies that VX increases when theta_x > 0 and theta_y == 0.
+ * This test verifies that VX increases when varphi_x > 0 and theta_y == 0.
  */
 TEST(StateEstimatorAxisMismatch, VXDrivenByThetaXNotThetaY) {
     SystemParameters params;
@@ -32,7 +32,7 @@ TEST(StateEstimatorAxisMismatch, VXDrivenByThetaXNotThetaY) {
 
     // Initialize with only X-axis tilt (no Y-axis tilt)
     StateVector init = StateVector::Zero();
-    init(state_index::THETA_X) = 0.1;  // 0.1 rad tilt in X
+    init(state_index::VARPHI_X) = 0.1;  // 0.1 rad tilt in X
     init(state_index::THETA_Y) = 0.0;  // No tilt in Y
 
     estimator.reset(init);
@@ -42,9 +42,9 @@ TEST(StateEstimatorAxisMismatch, VXDrivenByThetaXNotThetaY) {
 
     const StateVector& x_hat = estimator.get_state();
 
-    // With positive theta_x, ball should roll in +X direction (VX increases)
+    // With positive varphi_x, ball should roll in +X direction (VX increases)
     EXPECT_GT(x_hat(state_index::VX), 0.0)
-        << "BUG: VX must increase when theta_x > 0 (axis mismatch if this fails)";
+        << "BUG: VX must increase when varphi_x > 0 (axis mismatch if this fails)";
 
     // With zero theta_y, VY should remain near zero
     EXPECT_NEAR(x_hat(state_index::VY), 0.0, 1e-9)
@@ -62,7 +62,7 @@ TEST(StateEstimatorAxisMismatch, VYDrivenByThetaYNotThetaX) {
 
     // Initialize with only Y-axis tilt
     StateVector init = StateVector::Zero();
-    init(state_index::THETA_X) = 0.0;
+    init(state_index::VARPHI_X) = 0.0;
     init(state_index::THETA_Y) = 0.1;  // 0.1 rad tilt in Y
 
     estimator.reset(init);
@@ -74,7 +74,7 @@ TEST(StateEstimatorAxisMismatch, VYDrivenByThetaYNotThetaX) {
         << "VY must increase when theta_y > 0";
 
     EXPECT_NEAR(x_hat(state_index::VX), 0.0, 1e-9)
-        << "VX must remain zero when theta_x == 0";
+        << "VX must remain zero when varphi_x == 0";
 }
 
 // ============================================================================
@@ -277,7 +277,7 @@ TEST(PIDController, IndependentAxisControl) {
     ControlVector control = controller.compute(setpoint, state);
 
     // X control should be non-zero (proportional to error)
-    EXPECT_NE(control(control_index::THETA_X_CMD), 0.0)
+    EXPECT_NE(control(control_index::VARPHI_X_CMD), 0.0)
         << "X controller should produce output for X error";
 
     // Y control should be zero (zero gains)

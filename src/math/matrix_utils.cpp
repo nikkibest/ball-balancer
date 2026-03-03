@@ -20,10 +20,10 @@ namespace matrix_utils {
 
 bool is_controllable(const SystemMatrix& A, const ControlMatrix& B) {
     constexpr int n = 9;  // State dimension
-    constexpr int m = 2;  // Control dimension
+    constexpr int m = 3;  // Control dimension
 
     // Construct controllability matrix C = [B AB A²B A³B A⁴B A⁵B]
-    // Size: 6 x 12 (n x n*m)
+    // Size: n x n*m
     Eigen::Matrix<double, n, n * m> C;
 
     // Build controllability matrix column by column
@@ -95,16 +95,16 @@ LinearizedSystem compute_linearization(
     const double tau_servo = params.servo_time_constant;
     constexpr double rolling_factor = 5.0 / 7.0;
 
-    // State: [x, y, z_ball, vx, vy, vz_ball, theta_x, theta_y, z_table]
+    // State: [x, y, z_ball, vx, vy, vz_ball, varphi_x, theta_y, z_table]
     //
     // Dynamics (small angle):
     // dx/dt = vx
     // dy/dt = vy
     // dz_ball/dt = vz_ball (stub: 0)
-    // dvx/dt = (5/7)*g*theta_x - friction*vx
+    // dvx/dt = (5/7)*g*varphi_x - friction*vx
     // dvy/dt = (5/7)*g*theta_y - friction*vy
     // dvz_ball/dt = 0 (stub)
-    // dtheta_x/dt = (theta_x_cmd - theta_x) / tau_servo
+    // dvarphi_x/dt = (varphi_x_cmd - varphi_x) / tau_servo
     // dtheta_y/dt = (theta_y_cmd - theta_y) / tau_servo
     // dz_table/dt = 0 (stub)
 
@@ -117,16 +117,16 @@ LinearizedSystem compute_linearization(
     // dy/dt = vy
     sys.A(state_index::Y, state_index::VY) = 1.0;
 
-    // dvx/dt = (5/7)*g*theta_x - friction*vx
-    sys.A(state_index::VX, state_index::THETA_X) = rolling_factor * g;
+    // dvx/dt = (5/7)*g*varphi_x - friction*vx
+    sys.A(state_index::VX, state_index::VARPHI_X) = rolling_factor * g;
     sys.A(state_index::VX, state_index::VX) = -friction;
 
     // dvy/dt = (5/7)*g*theta_y - friction*vy
     sys.A(state_index::VY, state_index::THETA_Y) = rolling_factor * g;
     sys.A(state_index::VY, state_index::VY) = -friction;
 
-    // dtheta_x/dt = (theta_x_cmd - theta_x) / tau_servo
-    sys.A(state_index::THETA_X, state_index::THETA_X) = -1.0 / tau_servo;
+    // dvarphi_x/dt = (varphi_x_cmd - varphi_x) / tau_servo
+    sys.A(state_index::VARPHI_X, state_index::VARPHI_X) = -1.0 / tau_servo;
 
     // dtheta_y/dt = (theta_y_cmd - theta_y) / tau_servo
     sys.A(state_index::THETA_Y, state_index::THETA_Y) = -1.0 / tau_servo;
@@ -135,7 +135,7 @@ LinearizedSystem compute_linearization(
     sys.B.setZero();
 
     // Only servo dynamics affected by control
-    sys.B(state_index::THETA_X, control_index::THETA_X_CMD) = 1.0 / tau_servo;
+    sys.B(state_index::VARPHI_X, control_index::VARPHI_X_CMD) = 1.0 / tau_servo;
     sys.B(state_index::THETA_Y, control_index::THETA_Y_CMD) = 1.0 / tau_servo;
 
     // C matrix: Measurement mapping y = C*x

@@ -10,7 +10,7 @@
  * See header for coordinate conventions and equation summary.
  *
  * Notation used throughout (matching derivation document):
- *   phi   (φ) = THETA_X  — roll  around X, drives ball in Y
+ *   phi   (φ) = VARPHI_X  — roll  around X, drives ball in Y
  *   theta (θ) = THETA_Y  — pitch around Y, drives ball in X
  *   r         = ball_radius
  *   m         = ball_mass

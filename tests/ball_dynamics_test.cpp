@@ -147,7 +147,7 @@ TEST(BallDynamicsAccelerations, TiltedTableDrivesYAcceleration) {
     BallDynamics bd(makeDefaultParams());
     SystemParameters p = makeDefaultParams();
 
-    // phi > 0 (THETA_X) should drive ball in +Y direction
+    // phi > 0 (VARPHI_X) should drive ball in +Y direction
     StateVector s = restingState();
     TableState table = flatStaticTable();
     table.phi = 0.05;  // 5 deg roll

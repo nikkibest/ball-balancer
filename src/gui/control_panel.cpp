@@ -22,7 +22,7 @@ ControlPanel::ControlPanel(const SystemParameters& params)
     , sim_state_(SimulationState::Stopped)
     , ctrl_state_(ControllerState::Stopped)
     , reset_requested_(false)
-    , control_(Eigen::Vector2d::Zero())
+    , control_(ControlVector::Zero())
     , setpoint_(Eigen::Vector2d::Zero())
     , manual_state_(StateVector::Zero())
     , show_advanced_tuning_(false)
@@ -173,19 +173,24 @@ void ControlPanel::render_simulation_controls() {
 
 void ControlPanel::render_manual_controls() {
     if (ImGui::CollapsingHeader("Manual Control", ImGuiTreeNodeFlags_DefaultOpen)) {
-        float theta_x_cmd_ = static_cast<float>(control_(control_index::THETA_X_CMD)); 
+        float varphi_x_cmd_ = static_cast<float>(control_(control_index::VARPHI_X_CMD)); 
         float theta_y_cmd_ = static_cast<float>(control_(control_index::THETA_Y_CMD)); 
+        float table_z_cmd_ = static_cast<float>(control_(control_index::TABLE_Z_CMD)); 
 
-        if (ImGui::SliderFloat("##theta_x_cmd", &theta_x_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
-            control_(control_index::THETA_X_CMD) = theta_x_cmd_;
+        if (ImGui::SliderFloat("##varphi_x_cmd", &varphi_x_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
+            control_(control_index::VARPHI_X_CMD) = varphi_x_cmd_;
         }
         if (ImGui::SliderFloat("##theta_y_cmd", &theta_y_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
             control_(control_index::THETA_Y_CMD) = theta_y_cmd_;
         }
+        if (ImGui::SliderFloat("##table_z_cmd", &table_z_cmd_, params_.min_table_height, params_.max_table_height, "%.3f")) {
+            control_(control_index::TABLE_Z_CMD) = table_z_cmd_;
+        }
         float button_width = ImGui::GetContentRegionAvail().x;
         if (ImGui::Button("Reset Manuals", ImVec2(button_width, 0))) {
-            control_(control_index::THETA_X_CMD) = 0.0f;
+            control_(control_index::VARPHI_X_CMD) = 0.0f;
             control_(control_index::THETA_Y_CMD) = 0.0f;
+            control_(control_index::TABLE_Z_CMD) = 0.0f;
         }
     }
 }
@@ -400,9 +405,9 @@ void ControlPanel::render_system_status(const StateVector& state, bool in_contac
         // Table tilt
         ImGui::Text("Table Tilt:");
         ImGui::Indent();
-        double theta_x_deg = state(state_index::THETA_X) * 180.0 / M_PI;
+        double varphi_x_deg = state(state_index::VARPHI_X) * 180.0 / M_PI;
         double theta_y_deg = state(state_index::THETA_Y) * 180.0 / M_PI;
-        ImGui::Text("X: %.2f deg", theta_x_deg);
+        ImGui::Text("X: %.2f deg", varphi_x_deg);
         ImGui::Text("Y: %.2f deg", theta_y_deg);
         ImGui::Unindent();
 
@@ -468,16 +473,17 @@ bool ControlPanel::render_manual_state_sliders() {
         manual_state_(state_index::Z_BALL) = z_ball;
         manual_state_changed_ = true;
     }
+    ImGui::EndDisabled();
 
     ImGui::Spacing();
     ImGui::TextUnformatted("Table Tilt (rad)");
 
-    float theta_x = static_cast<float>(manual_state_(state_index::THETA_X));
+    float varphi_x = static_cast<float>(manual_state_(state_index::VARPHI_X));
     float theta_y = static_cast<float>(manual_state_(state_index::THETA_Y));
     const float max_tilt = static_cast<float>(params_.max_tilt_angle);
 
-    if (ImGui::SliderFloat("varphi_x##ms", &theta_x, -max_tilt, max_tilt, "%.3f")) {
-        manual_state_(state_index::THETA_X) = theta_x;
+    if (ImGui::SliderFloat("varphi_x##ms", &varphi_x, -max_tilt, max_tilt, "%.3f")) {
+        manual_state_(state_index::VARPHI_X) = varphi_x;
         manual_state_changed_ = true;
     }
     if (ImGui::SliderFloat("theta_y##ms", &theta_y, -max_tilt, max_tilt, "%.3f")) {
@@ -502,7 +508,7 @@ bool ControlPanel::render_manual_state_sliders() {
         manual_state_changed_ = true;
     }
 
-    ImGui::EndDisabled();
+    
 
     return manual_state_changed_;
 }

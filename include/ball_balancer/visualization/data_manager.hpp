@@ -44,7 +44,7 @@ public:
         double ball_vx{0.0};      ///< Ball X velocity (m/s)
         double ball_vy{0.0};      ///< Ball Y velocity (m/s)
         double ball_vz{0.0};      ///< Ball Z velocity (m/s)
-        double table_theta_x{0.0}; ///< Table tilt X (radians)
+        double table_varphi_x{0.0}; ///< Table tilt X (radians)
         double table_theta_y{0.0}; ///< Table tilt Y (radians)
         double table_z{0.0};      ///< Table Z position (meters)
         double error_x{0.0};      ///< Position error X (meters)

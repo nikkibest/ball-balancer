@@ -20,7 +20,7 @@
 /**
  * Test RK4 integration accuracy against known analytical solution.
  *
- * For a ball at rest on a tilted table with theta_x = 0.1 rad,
+ * For a ball at rest on a tilted table with varphi_x = 0.1 rad,
  * the ball should accelerate down the slope according to:
  * a_x = g * sin(theta) / (1 + I/(m*r^2))
  *
@@ -35,11 +35,11 @@ TEST(PhysicsSimulatorRK4, AccelerationOnTiltedTable) {
 
     // Initial state: ball at center, table tilted in X direction
     StateVector state = StateVector::Zero();
-    state(state_index::THETA_X) = 0.1;  // 0.1 rad tilt
+    state(state_index::VARPHI_X) = 0.1;  // 0.1 rad tilt
 
     // Zero control input
     ControlVector control = ControlVector::Zero();
-    control(control_index::THETA_X) = 0.1;  // Hold table at 0.1 rad
+    control(control_index::VARPHI_X) = 0.1;  // Hold table at 0.1 rad
 
     // Step forward in time
     constexpr double dt = 0.001;  // 1ms timestep
@@ -81,7 +81,7 @@ TEST(PhysicsSimulatorRK4, EnergyConservation) {
 
     // Initial state: ball at rest, table tilted
     StateVector state = StateVector::Zero();
-    state(state_index::THETA_X) = 0.1;
+    state(state_index::VARPHI_X) = 0.1;
 
     // Compute initial energy (just potential from height)
     // h = x * sin(theta) (approximately, for small theta)
@@ -91,7 +91,7 @@ TEST(PhysicsSimulatorRK4, EnergyConservation) {
 
     // Step forward 100ms
     ControlVector control = ControlVector::Zero();
-    control(control_index::THETA_X) = 0.1;
+    control(control_index::VARPHI_X) = 0.1;
 
     for (int i = 0; i < 100; ++i) {
         state = sim.step(state, control, 0.001);
@@ -126,10 +126,10 @@ TEST(PhysicsSimulatorRK4, SmoothTrajectory) {
     PhysicsSimulator sim(params);
 
     StateVector state = StateVector::Zero();
-    state(state_index::THETA_X) = 0.1;
+    state(state_index::VARPHI_X) = 0.1;
 
     ControlVector control = ControlVector::Zero();
-    control(control_index::THETA_X) = 0.1;
+    control(control_index::VARPHI_X) = 0.1;
 
     // Step forward and check for discontinuities
     double prev_x = state(state_index::X);
@@ -270,13 +270,13 @@ TEST(PhysicsSimulatorServo, MaxAngularVelocityLimit) {
 
     // Command table to maximum angle instantly
     ControlVector control = ControlVector::Zero();
-    control(control_index::THETA_X) = params.max_table_angle;
+    control(control_index::VARPHI_X) = params.max_table_angle;
 
     // Step forward - servo should rate-limit the motion
     StateVector new_state = sim.step(state, control, 0.001);
 
     // Angle should increase, but not exceed max velocity constraint
-    double d_theta = new_state(state_index::THETA_X) - state(state_index::THETA_X);
+    double d_theta = new_state(state_index::VARPHI_X) - state(state_index::VARPHI_X);
     double angular_velocity = d_theta / 0.001;
 
     // Allow 10% margin for numerical tolerance
@@ -298,7 +298,7 @@ TEST(PhysicsSimulatorServo, FirstOrderDynamics) {
     // Command step input
     ControlVector control = ControlVector::Zero();
     const double target_angle = 0.05;  // 0.05 rad target
-    control(control_index::THETA_X) = target_angle;
+    control(control_index::VARPHI_X) = target_angle;
 
     // Simulate for several time constants
     const double time_constant = params.servo_time_constant;
@@ -310,7 +310,7 @@ TEST(PhysicsSimulatorServo, FirstOrderDynamics) {
     }
 
     // After 5 time constants, should be within 1% of target (e^-5 ≈ 0.0067)
-    EXPECT_NEAR(state(state_index::THETA_X), target_angle, target_angle * 0.01)
+    EXPECT_NEAR(state(state_index::VARPHI_X), target_angle, target_angle * 0.01)
         << "Servo should reach ~99% of target after 5 time constants";
 }
 
@@ -327,7 +327,7 @@ TEST(PhysicsSimulatorServo, MaxAngleLimit) {
 
     // Command angle far beyond limits
     ControlVector control = ControlVector::Zero();
-    control(control_index::THETA_X) = 10.0 * params.max_table_angle;  // 10x the limit
+    control(control_index::VARPHI_X) = 10.0 * params.max_table_angle;  // 10x the limit
     control(control_index::THETA_Y) = -10.0 * params.max_table_angle;
 
     // Simulate for a long time
@@ -336,7 +336,7 @@ TEST(PhysicsSimulatorServo, MaxAngleLimit) {
     }
 
     // Angle should be clamped to limits
-    EXPECT_LE(std::abs(state(state_index::THETA_X)), params.max_table_angle)
+    EXPECT_LE(std::abs(state(state_index::VARPHI_X)), params.max_table_angle)
         << "Table angle should not exceed max_table_angle limit";
     EXPECT_LE(std::abs(state(state_index::THETA_Y)), params.max_table_angle)
         << "Table angle should not exceed max_table_angle limit";
@@ -355,15 +355,15 @@ TEST(PhysicsSimulatorServo, AxisIndependence) {
 
     // Command only X axis
     ControlVector control = ControlVector::Zero();
-    control(control_index::THETA_X) = 0.1;
+    control(control_index::VARPHI_X) = 0.1;
     control(control_index::THETA_Y) = 0.0;
 
     // Step forward
     StateVector new_state = sim.step(state, control, 0.01);
 
     // X should change, Y should remain near zero
-    EXPECT_GT(new_state(state_index::THETA_X), 0.0)
-        << "THETA_X should increase when commanded";
+    EXPECT_GT(new_state(state_index::VARPHI_X), 0.0)
+        << "VARPHI_X should increase when commanded";
     EXPECT_NEAR(new_state(state_index::THETA_Y), 0.0, 1e-9)
         << "THETA_Y should remain zero when not commanded";
 }

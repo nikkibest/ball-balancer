@@ -47,8 +47,8 @@ void StateEstimator::compute_system_matrices() {
     // State-Space Model (Linearized, 9D state)
     // ========================================================================
     //
-    // State: x = [x, y, z_ball, vx, vy, vz_ball, theta_x, theta_y, z_table]
-    // Control: u = [theta_x_cmd, theta_y_cmd]
+    // State: x = [x, y, z_ball, vx, vy, vz_ball, varphi_x, theta_y, z_table]
+    // Control: u = [varphi_x_cmd, theta_y_cmd]
     // Measurement: z = [x, y]
     //
     // Continuous-time linearized dynamics:
@@ -56,9 +56,9 @@ void StateEstimator::compute_system_matrices() {
     // dy/dt = vy
     // dz_ball/dt = vz_ball         (stub: vz_ball = 0, so z_ball is constant)
     // dvx/dt = (5/7)*g*theta_y     (ball acceleration due to table tilt)
-    // dvy/dt = (5/7)*g*theta_x
+    // dvy/dt = (5/7)*g*varphi_x
     // dvz_ball/dt = 0              (stub: no vertical dynamics)
-    // dtheta_x/dt = (theta_x_cmd - theta_x) / tau_servo
+    // dvarphi_x/dt = (varphi_x_cmd - varphi_x) / tau_servo
     // dtheta_y/dt = (theta_y_cmd - theta_y) / tau_servo
     // dz_table/dt = 0              (stub: no vertical dynamics)
     //
@@ -80,20 +80,21 @@ void StateEstimator::compute_system_matrices() {
     Ac(state_index::Z_BALL, state_index::VZ_BALL) = 1.0;
 
     // Velocity derivatives (linearized around small angles)
-    // dvx/dt = (5/7) * g * sin(theta_x) ≈ (5/7) * g * theta_x
+    // dvx/dt = (5/7) * g * sin(varphi_x) ≈ (5/7) * g * varphi_x
     // dvy/dt = (5/7) * g * sin(theta_y) ≈ (5/7) * g * theta_y
-    Ac(state_index::VX, state_index::THETA_X) = rolling_factor * g;
+    Ac(state_index::VX, state_index::VARPHI_X) = rolling_factor * g;
     Ac(state_index::VY, state_index::THETA_Y) = rolling_factor * g;
     // vz_ball: zero dynamics — no entry needed
 
     // Angle derivatives (first-order servo dynamics)
-    Ac(state_index::THETA_X, state_index::THETA_X) = -1.0 / tau_servo;
+    Ac(state_index::VARPHI_X, state_index::VARPHI_X) = -1.0 / tau_servo;
     Ac(state_index::THETA_Y, state_index::THETA_Y) = -1.0 / tau_servo;
     // z_table: zero dynamics — no entry needed
 
-    // B matrix (continuous-time, 9x2)
-    Eigen::Matrix<double, 9, 2> Bc = Eigen::Matrix<double, 9, 2>::Zero();
-    Bc(state_index::THETA_X, control_index::THETA_X_CMD) = 1.0 / tau_servo;
+    // B matrix (continuous-time, 9x3)
+    // TABLE_Z_CMD (col 2) has no linearized servo dynamics — column stays zero.
+    Eigen::Matrix<double, 9, 3> Bc = Eigen::Matrix<double, 9, 3>::Zero();
+    Bc(state_index::VARPHI_X, control_index::VARPHI_X_CMD) = 1.0 / tau_servo;
     Bc(state_index::THETA_Y, control_index::THETA_Y_CMD) = 1.0 / tau_servo;
 
     // ========================================================================
@@ -145,7 +146,7 @@ void StateEstimator::initialize_noise_matrices() {
         tuning_.process_noise_velocity * tuning_.process_noise_velocity;
 
     // Angle uncertainty (servo model uncertainty)
-    Q_(state_index::THETA_X, state_index::THETA_X) =
+    Q_(state_index::VARPHI_X, state_index::VARPHI_X) =
         tuning_.process_noise_angle * tuning_.process_noise_angle;
     Q_(state_index::THETA_Y, state_index::THETA_Y) =
         tuning_.process_noise_angle * tuning_.process_noise_angle;

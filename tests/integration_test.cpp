@@ -108,15 +108,15 @@ TEST(Integration, TiltDrivesBallInCorrectYDirection) {
     s(state_index::Z_BALL) = p.ball_radius;
     sim.reset(s);
 
-    // Positive THETA_X_CMD (roll / phi) should drive ball in +Y direction
+    // Positive VARPHI_X_CMD (roll / phi) should drive ball in +Y direction
     ControlVector ctrl = ControlVector::Zero();
-    ctrl(control_index::THETA_X_CMD) = 0.05;
+    ctrl(control_index::VARPHI_X_CMD) = 0.05;
 
     runFor(sim, 1.0, ctrl);
 
     const StateVector& final = sim.get_state();
     EXPECT_GT(final(state_index::Y), 0.01)
-        << "Positive THETA_X should drive ball in +Y direction";
+        << "Positive VARPHI_X should drive ball in +Y direction";
 
     EXPECT_NEAR(final(state_index::X), 0.0, 0.02)
         << "Pure roll should not drive ball in X direction";
