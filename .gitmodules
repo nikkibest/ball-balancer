@@ -1,0 +1,3 @@
+[submodule "external/implot3d"]
+	path = external/implot3d
+	url = https://github.com/brenocq/implot3d.git

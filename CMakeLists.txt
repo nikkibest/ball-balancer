@@ -92,6 +92,21 @@ target_include_directories(implot PUBLIC
 )
 target_link_libraries(implot PUBLIC imgui)
 
+# ImPlot3D - 3D plotting library
+set(IMPLOT3D_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/implot3d)
+set(IMPLOT3D_SOURCES
+    ${IMPLOT3D_DIR}/implot3d.cpp
+    ${IMPLOT3D_DIR}/implot3d_items.cpp
+    ${IMPLOT3D_DIR}/implot3d_meshes.cpp
+)
+add_library(implot3d STATIC ${IMPLOT3D_SOURCES})
+target_include_directories(implot3d PUBLIC
+    ${IMPLOT3D_DIR}
+    ${IMGUI_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/external  # For imconfig.h
+)
+target_link_libraries(implot3d PUBLIC imgui)
+
 # GLAD - OpenGL function loader
 add_library(glad STATIC external/glad/src/glad.c)
 target_include_directories(glad PUBLIC external/glad/include)
@@ -175,6 +190,7 @@ target_link_libraries(ball_balancer PRIVATE
     glad
     imgui
     implot
+    implot3d
     ${CMAKE_DL_LIBS}  # For dlopen/dlsym (used by GLAD)
 )
 

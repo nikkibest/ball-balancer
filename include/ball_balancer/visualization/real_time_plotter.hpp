@@ -3,7 +3,7 @@
 #include <ball_balancer/core/types.hpp>
 #include <ball_balancer/visualization/data_manager.hpp>
 #include <implot.h>
-#include <array>
+#include <implot3d.h>
 
 /**
  * @file real_time_plotter.hpp
@@ -93,7 +93,7 @@ public:
 
 private:
     /**
-     * @brief Render 3D trajectory plot (X, Y, Z) using isometric projection
+     * @brief Render 3D trajectory plot (X, Y, Z) using ImPlot3D
      */
     void render_trajectory();
 
@@ -123,13 +123,14 @@ private:
     // Data storage (fixed-size ring buffer with std::array)
     DataManager data_;
 
-    // Trajectory data (X, Y, Z) - pre-allocated ring buffers for 3D path
+    // Trajectory data (X, Y, Z) - chronologically ordered flat vectors for direct PlotLine use.
+    // Filled with push_back until capacity, then rotated once per wrap (every
+    // max_trajectory_points_ updates) to evict the oldest point.
     static constexpr size_t max_trajectory_points_ = 1000;
-    std::array<double, max_trajectory_points_> trajectory_x_;
-    std::array<double, max_trajectory_points_> trajectory_y_;
-    std::array<double, max_trajectory_points_> trajectory_z_;
-    size_t trajectory_size_{0};
-    size_t trajectory_offset_{0};
+    std::vector<double> traj_flat_x_;
+    std::vector<double> traj_flat_y_;
+    std::vector<double> traj_flat_z_;
+    bool traj_full_{false};  // true once the vectors reach capacity
 
     // Current setpoint (for plotting)
     Eigen::Vector2d current_setpoint_;
