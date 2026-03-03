@@ -280,17 +280,17 @@ void Renderer::render(const StateVector& state) {
 
         // Render table
         {
-            // Table transformation: rotate by theta_x and theta_y, translate by z_table
-            float theta_x = static_cast<float>(state(state_index::THETA_X));
+            // Table transformation: rotate by varphi_x and theta_y, translate by z_table
+            float varphi_x = static_cast<float>(state(state_index::VARPHI_X));
             float theta_y = static_cast<float>(state(state_index::THETA_Y));
             float z_table = static_cast<float>(state(state_index::Z_TABLE));
 
             // Rotation around X axis
             Eigen::Matrix4f rot_x = Eigen::Matrix4f::Identity();
-            rot_x(1, 1) = std::cos(theta_x);
-            rot_x(1, 2) = -std::sin(theta_x);
-            rot_x(2, 1) = std::sin(theta_x);
-            rot_x(2, 2) = std::cos(theta_x);
+            rot_x(1, 1) = std::cos(varphi_x);
+            rot_x(1, 2) = -std::sin(varphi_x);
+            rot_x(2, 1) = std::sin(varphi_x);
+            rot_x(2, 2) = std::cos(varphi_x);
 
             // Rotation around Z axis (physics Y-axis maps to OpenGL -Z axis)
             // This rotates in the XY plane (around the Z axis pointing toward viewer)
@@ -323,10 +323,10 @@ void Renderer::render(const StateVector& state) {
             // OpenGL coords: X (horizontal), Y (vertical/up), Z (horizontal, into screen)
             float ball_x = static_cast<float>(state(state_index::X));
             float ball_y = static_cast<float>(state(state_index::Y));
-            // OpenGL Y = table z_table + ball_radius (sits on table) + z_ball offset
-            float ball_z = static_cast<float>(state(state_index::Z_TABLE))
-                         + params_.ball_radius
-                         + static_cast<float>(state(state_index::Z_BALL));
+            // Z_BALL is an absolute world-frame height (set by BallDynamics / contact snap).
+            // The table is rendered at Z_TABLE, and the ball rests at z_surface = z_t + r.
+            // Do NOT add Z_TABLE or ball_radius here — Z_BALL already encodes both.
+            float ball_z = static_cast<float>(state(state_index::Z_BALL));
 
 #ifdef __EMSCRIPTEN__
             static int log_counter = 0;
