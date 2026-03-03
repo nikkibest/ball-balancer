@@ -32,7 +32,7 @@ RealTimePlotter::RealTimePlotter(const SystemParameters& params)
     times_buffer_.reserve(max_capacity);
     x_values_buffer_.reserve(max_capacity);
     y_values_buffer_.reserve(max_capacity);
-    theta_x_buffer_.reserve(max_capacity);
+    varphi_x_buffer_.reserve(max_capacity);
     theta_y_buffer_.reserve(max_capacity);
     error_x_buffer_.reserve(max_capacity);
     error_y_buffer_.reserve(max_capacity);
@@ -57,7 +57,7 @@ void RealTimePlotter::update(
     double vx = state(state_index::VX);
     double vy = state(state_index::VY);
     double vz = state(state_index::VZ_BALL);
-    double theta_x = control(0);  // Use control (not state) for table angles
+    double varphi_x = control(0);  // Use control (not state) for table angles
     double theta_y = control(1);
     double table_z = state(state_index::Z_TABLE);
 
@@ -75,7 +75,7 @@ void RealTimePlotter::update(
     point.ball_vx = vx;
     point.ball_vy = vy;
     point.ball_vz = vz;
-    point.table_theta_x = theta_x;
+    point.table_varphi_x = varphi_x;
     point.table_theta_y = theta_y;
     point.table_z = table_z;
     point.error_x = error_x;
@@ -87,16 +87,16 @@ void RealTimePlotter::update(
     // Add to data manager (single unified ring buffer)
     data_.add_point(point);
 
-    // Update trajectory (X vs Y) - ring buffer implementation
+    // Update 3D trajectory ring buffer (X, Y, Z)
     if (trajectory_size_ < max_trajectory_points_) {
-        // Still filling the buffer
         trajectory_x_[trajectory_size_] = x;
         trajectory_y_[trajectory_size_] = y;
+        trajectory_z_[trajectory_size_] = z;
         ++trajectory_size_;
     } else {
-        // Buffer full, wrap around
         trajectory_x_[trajectory_offset_] = x;
         trajectory_y_[trajectory_offset_] = y;
+        trajectory_z_[trajectory_offset_] = z;
         trajectory_offset_ = (trajectory_offset_ + 1) % max_trajectory_points_;
     }
 }
@@ -109,8 +109,12 @@ bool RealTimePlotter::render() {
     }
 
     // Render plots in collapsing headers for organization
-    if (ImGui::CollapsingHeader("Ball Trajectory (X vs Y)", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Ball Trajectory (3D)", ImGuiTreeNodeFlags_DefaultOpen)) {
         render_trajectory();
+    }
+
+    if (ImGui::CollapsingHeader("Z Position", ImGuiTreeNodeFlags_DefaultOpen)) {
+        render_z_position();
     }
 
     if (ImGui::CollapsingHeader("Position vs Time", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -125,10 +129,6 @@ bool RealTimePlotter::render() {
         render_error();
     }
 
-    if (ImGui::CollapsingHeader("Z Position")) {
-        render_z_position();
-    }
-
     ImGui::End();
     return true;
 }
@@ -140,85 +140,190 @@ void RealTimePlotter::clear() {
 }
 
 void RealTimePlotter::render_trajectory() {
-    // X vs Y trajectory plot (not time series)
-    float plot_height = 300.0f;
+    // -------------------------------------------------------------------------
+    // 3D trajectory plot using isometric projection onto a 2D ImPlot canvas.
+    //
+    // Projection basis (right-hand, Z-up isometric):
+    //   screen_u =  cos(30°)*X - cos(30°)*Y      (horizontal axis)
+    //   screen_v =  sin(30°)*X + sin(30°)*Y + Z  (vertical axis)
+    //
+    // The plot axes are dimensionless projected coordinates; we fix the range
+    // so the table always fits and add Z headroom above.
+    // -------------------------------------------------------------------------
+    const float plot_height = 340.0f;
 
-    // IMPORTANT: Only call EndPlot() if BeginPlot() returns true (unlike ImGui::Begin/End)
-    if (!ImPlot::BeginPlot("Ball Trajectory", ImVec2(-1, plot_height),
-                           ImPlotFlags_Equal)) {
+    // IMPORTANT: Only call EndPlot() if BeginPlot() returns true
+    if (!ImPlot::BeginPlot("Ball Trajectory (3D)", ImVec2(-1, plot_height),
+                           ImPlotFlags_NoLegend | ImPlotFlags_NoMouseText)) {
         return;
     }
 
-    // Setup axes
-    double table_x = params_.table_length / 2.0;
-    double table_y = params_.table_width / 2.0;
+    // Fix canvas range to table footprint + Z range
+    const double tx = params_.table_length / 2.0;
+    const double ty = params_.table_width  / 2.0;
+    const double tz_max = params_.max_table_height + 0.15; // include free-flight headroom
 
-    ImPlot::SetupAxis(ImAxis_X1, "X Position (m)");
-    ImPlot::SetupAxis(ImAxis_Y1, "Y Position (m)");
-    ImPlot::SetupAxisLimits(ImAxis_X1, -table_x, table_x, ImGuiCond_Always);
-    ImPlot::SetupAxisLimits(ImAxis_Y1, -table_y, table_y, ImGuiCond_Always);
+    // Isometric projection: u = cos30*(X-Y), v = sin30*(X+Y) + Z
+    // Range in u: ±cos30*(tx+ty), range in v: 0..sin30*(tx+ty)+tz_max
+    const double cos30 = 0.8660254;
+    const double sin30 = 0.5;
+    const double u_range = cos30 * (tx + ty);
+    const double v_min   = -sin30 * (tx + ty);
+    const double v_max   = sin30  * (tx + ty) + tz_max;
 
-    // Plot trajectory if we have data
-    if (trajectory_size_ > 0) {
-        double current_x, current_y;
+    ImPlot::SetupAxis(ImAxis_X1, "##u", ImPlotAxisFlags_NoTickLabels);
+    ImPlot::SetupAxis(ImAxis_Y1, "##v", ImPlotAxisFlags_NoTickLabels);
+    ImPlot::SetupAxisLimits(ImAxis_X1, -u_range, u_range, ImGuiCond_Always);
+    ImPlot::SetupAxisLimits(ImAxis_Y1, v_min,    v_max,   ImGuiCond_Always);
 
-        // Plot trajectory as line - pass ring buffer data directly to ImPlot
-        if (trajectory_size_ < max_trajectory_points_) {
-            // Buffer not full yet - plot from start
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.4f, 0.7f, 1.0f, 1.0f));
-            ImPlot::PlotLine("Ball Path", trajectory_x_.data(), trajectory_y_.data(),
-                            static_cast<int>(trajectory_size_));
-            ImPlot::PopStyleColor();
+    // Lambda: project physics (x,y,z) → isometric (u,v)
+    auto proj = [&](double x, double y, double z, double& u, double& v) {
+        u = cos30 * (x - y);
+        v = sin30 * (x + y) + z;
+    };
 
-            current_x = trajectory_x_[trajectory_size_ - 1];
-            current_y = trajectory_y_[trajectory_size_ - 1];
-        } else {
-            // Buffer full - plot in two segments to handle wraparound
-            // Segment 1: from offset to end of array
-            size_t first_count = max_trajectory_points_ - trajectory_offset_;
-            ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.4f, 0.7f, 1.0f, 1.0f));
-            ImPlot::PlotLine("Ball Path##1", &trajectory_x_[trajectory_offset_], &trajectory_y_[trajectory_offset_],
-                            static_cast<int>(first_count));
+    ImDrawList* dl = ImPlot::GetPlotDrawList();
 
-            // Segment 2: from start to offset (if offset > 0)
-            if (trajectory_offset_ > 0) {
-                ImPlot::PlotLine("Ball Path##2", trajectory_x_.data(), trajectory_y_.data(),
-                                static_cast<int>(trajectory_offset_));
+    // Helper: physics point → ImVec2 pixel position
+    auto to_px = [&](double x, double y, double z) -> ImVec2 {
+        double u, v;
+        proj(x, y, z, u, v);
+        return ImPlot::PlotToPixels(ImPlotPoint(u, v));
+    };
+
+    // --- Draw table surface outline (bottom face at current table Z) ---
+    {
+        // Get latest table Z from the most recent data point
+        double z_t = 0.0;
+        if (trajectory_size_ > 0) {
+            if (!data_.empty()) {
+                const auto* dp = data_.data();
+                size_t last = (data_.offset() + data_.size() - 1) % DataManager::CAPACITY;
+                z_t = dp[last].table_z;
             }
-            ImPlot::PopStyleColor();
-
-            // Current position is just before offset
-            size_t current_idx = (trajectory_offset_ == 0) ? (max_trajectory_points_ - 1) : (trajectory_offset_ - 1);
-            current_x = trajectory_x_[current_idx];
-            current_y = trajectory_y_[current_idx];
         }
-
-        // Plot current position as marker
-        ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
-        ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 8.0f);
-        ImPlot::PlotScatter("Current", &current_x, &current_y, 1);
-        ImPlot::PopStyleVar();
-        ImPlot::PopStyleColor();
+        // Four corners of the table top surface
+        const double cx[4] = {-tx,  tx,  tx, -tx};
+        const double cy[4] = {-ty, -ty,  ty,  ty};
+        ImU32 table_col = IM_COL32(180, 140, 80, 120);
+        // Fill quad
+        ImVec2 p0 = to_px(cx[0], cy[0], z_t);
+        ImVec2 p1 = to_px(cx[1], cy[1], z_t);
+        ImVec2 p2 = to_px(cx[2], cy[2], z_t);
+        ImVec2 p3 = to_px(cx[3], cy[3], z_t);
+        dl->AddQuadFilled(p0, p1, p2, p3, table_col);
+        // Outline
+        ImU32 edge_col = IM_COL32(200, 160, 90, 200);
+        dl->AddQuad(p0, p1, p2, p3, edge_col, 1.5f);
+        // Vertical legs to ground level
+        double z_ground = 0.0;
+        ImU32 leg_col = IM_COL32(140, 110, 60, 100);
+        for (int i = 0; i < 4; ++i) {
+            dl->AddLine(to_px(cx[i], cy[i], z_t),
+                        to_px(cx[i], cy[i], z_ground), leg_col, 1.0f);
+        }
+        // Ground shadow outline
+        ImU32 shadow_col = IM_COL32(100, 100, 100, 60);
+        dl->AddQuad(to_px(cx[0], cy[0], z_ground),
+                    to_px(cx[1], cy[1], z_ground),
+                    to_px(cx[2], cy[2], z_ground),
+                    to_px(cx[3], cy[3], z_ground), shadow_col, 1.0f);
     }
 
-    // Plot setpoint as marker
-    double setpoint_x = current_setpoint_.x();
-    double setpoint_y = current_setpoint_.y();
+    // --- Draw projected axis labels ---
+    {
+        double z_t = 0.0;
+        if (!data_.empty()) {
+            const auto* dp = data_.data();
+            size_t last = (data_.offset() + data_.size() - 1) % DataManager::CAPACITY;
+            z_t = dp[last].table_z;
+        }
+        // X axis arrow
+        dl->AddLine(to_px(0, 0, z_t), to_px(tx * 0.6, 0, z_t),
+                    IM_COL32(220, 80, 80, 200), 1.5f);
+        // Y axis arrow
+        dl->AddLine(to_px(0, 0, z_t), to_px(0, ty * 0.6, z_t),
+                    IM_COL32(80, 200, 80, 200), 1.5f);
+        // Z axis arrow
+        dl->AddLine(to_px(0, 0, z_t), to_px(0, 0, z_t + 0.12),
+                    IM_COL32(80, 140, 220, 200), 1.5f);
+    }
 
-    ImPlot::PushStyleColor(ImPlotCol_MarkerFill, ImVec4(0.2f, 1.0f, 0.2f, 1.0f));
-    ImPlot::PushStyleVar(ImPlotStyleVar_MarkerSize, 10.0f);
-    ImPlot::PushStyleVar(ImPlotStyleVar_Marker, ImPlotMarker_Cross);
-    ImPlot::PlotScatter("Target", &setpoint_x, &setpoint_y, 1);
-    ImPlot::PopStyleVar(2);
-    ImPlot::PopStyleColor();
+    // --- Draw ball trajectory path ---
+    if (trajectory_size_ > 1) {
+        ImU32 path_col = IM_COL32(100, 160, 255, 180);
+        // Unwrap the ring buffer chronologically
+        size_t count = trajectory_size_;
+        size_t start = (trajectory_size_ < max_trajectory_points_)
+                       ? 0 : trajectory_offset_;
+        for (size_t i = 0; i + 1 < count; ++i) {
+            size_t a = (start + i)     % max_trajectory_points_;
+            size_t b = (start + i + 1) % max_trajectory_points_;
+            // Fade older segments
+            float alpha = static_cast<float>(i) / static_cast<float>(count - 1);
+            ImU32 seg_col = IM_COL32(
+                100, 160, 255,
+                static_cast<int>(60 + 180 * alpha));
+            dl->AddLine(
+                to_px(trajectory_x_[a], trajectory_y_[a], trajectory_z_[a]),
+                to_px(trajectory_x_[b], trajectory_y_[b], trajectory_z_[b]),
+                seg_col, 1.5f);
+        }
+        (void)path_col;
+    }
 
-    // Draw table boundaries as reference
-    double table_x_corners[] = {-table_x, table_x, table_x, -table_x, -table_x};
-    double table_y_corners[] = {-table_y, -table_y, table_y, table_y, -table_y};
+    // --- Current ball position (red filled circle) ---
+    if (trajectory_size_ > 0) {
+        size_t cur = (trajectory_size_ < max_trajectory_points_)
+                     ? (trajectory_size_ - 1)
+                     : ((trajectory_offset_ + max_trajectory_points_ - 1) % max_trajectory_points_);
+        ImVec2 ball_px = to_px(trajectory_x_[cur], trajectory_y_[cur], trajectory_z_[cur]);
+        dl->AddCircleFilled(ball_px, 7.0f, IM_COL32(255, 70, 70, 230));
+        dl->AddCircle(ball_px, 7.0f, IM_COL32(255, 200, 200, 180), 0, 1.5f);
 
-    ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(0.5f, 0.5f, 0.5f, 0.5f));
-    ImPlot::PlotLine("Table Edge", table_x_corners, table_y_corners, 5);
-    ImPlot::PopStyleColor();
+        // Vertical drop line from ball to table surface
+        double z_t = 0.0;
+        if (!data_.empty()) {
+            const auto* dp = data_.data();
+            size_t last = (data_.offset() + data_.size() - 1) % DataManager::CAPACITY;
+            z_t = dp[last].table_z;
+        }
+        dl->AddLine(ball_px,
+                    to_px(trajectory_x_[cur], trajectory_y_[cur], z_t),
+                    IM_COL32(255, 70, 70, 80), 1.0f);
+    }
+
+    // --- Target / setpoint (green cross) ---
+    {
+        double sp_x = current_setpoint_.x();
+        double sp_y = current_setpoint_.y();
+        double z_t  = 0.0;
+        if (!data_.empty()) {
+            const auto* dp = data_.data();
+            size_t last = (data_.offset() + data_.size() - 1) % DataManager::CAPACITY;
+            z_t = dp[last].table_z;
+        }
+        ImVec2 sp_px = to_px(sp_x, sp_y, z_t);
+        const float arm = 8.0f;
+        ImU32 sp_col = IM_COL32(60, 220, 60, 220);
+        dl->AddLine({sp_px.x - arm, sp_px.y}, {sp_px.x + arm, sp_px.y}, sp_col, 2.0f);
+        dl->AddLine({sp_px.x, sp_px.y - arm}, {sp_px.x, sp_px.y + arm}, sp_col, 2.0f);
+        dl->AddCircle(sp_px, arm * 0.7f, sp_col, 0, 1.5f);
+    }
+
+    // --- Legend overlay (drawn via ImGui on top of the plot) ---
+    ImVec2 plot_pos = ImPlot::GetPlotPos();
+    ImDrawList* fg = ImGui::GetWindowDrawList();
+    float lx = plot_pos.x + 8.0f;
+    float ly = plot_pos.y + 8.0f;
+    fg->AddCircleFilled({lx + 6, ly + 6},  5.0f, IM_COL32(255,  70,  70, 230));
+    fg->AddText({lx + 15, ly},  IM_COL32(255, 255, 255, 200), "Ball");
+    ly += 18.0f;
+    fg->AddLine({lx, ly + 6}, {lx + 12, ly + 6}, IM_COL32(60, 220, 60, 220), 2.0f);
+    fg->AddText({lx + 15, ly}, IM_COL32(255, 255, 255, 200), "Target");
+    ly += 18.0f;
+    fg->AddLine({lx, ly + 6}, {lx + 12, ly + 6}, IM_COL32(100, 160, 255, 180), 1.5f);
+    fg->AddText({lx + 15, ly}, IM_COL32(255, 255, 255, 200), "Path");
 
     ImPlot::EndPlot();
 }
@@ -310,7 +415,7 @@ void RealTimePlotter::render_control_signals() {
 
     // Use pre-allocated buffers (clear and reuse)
     times_buffer_.clear();
-    theta_x_buffer_.clear();
+    varphi_x_buffer_.clear();
     theta_y_buffer_.clear();
 
     const auto* data_ptr = data_.data();
@@ -321,7 +426,7 @@ void RealTimePlotter::render_control_signals() {
     for (size_t i = 0; i < size; ++i) {
         size_t idx = (offset + i) % DataManager::CAPACITY;
         times_buffer_.push_back(data_ptr[idx].time);
-        theta_x_buffer_.push_back(data_ptr[idx].table_theta_x * 180.0 / M_PI);
+        varphi_x_buffer_.push_back(data_ptr[idx].table_varphi_x * 180.0 / M_PI);
         theta_y_buffer_.push_back(data_ptr[idx].table_theta_y * 180.0 / M_PI);
     }
 
@@ -337,9 +442,9 @@ void RealTimePlotter::render_control_signals() {
     ImPlot::SetupAxis(ImAxis_Y1, "Angle (deg)");
     ImPlot::SetupAxisLimits(ImAxis_X1, time_min, time_max, ImGuiCond_Always);
 
-    // Plot theta_x
+    // Plot varphi_x
     ImPlot::PushStyleColor(ImPlotCol_Line, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
-    ImPlot::PlotLine("Theta X", times_buffer_.data(), theta_x_buffer_.data(),
+    ImPlot::PlotLine("Theta X", times_buffer_.data(), varphi_x_buffer_.data(),
                     static_cast<int>(times_buffer_.size()));
     ImPlot::PopStyleColor();
 

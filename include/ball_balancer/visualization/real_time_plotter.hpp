@@ -93,7 +93,7 @@ public:
 
 private:
     /**
-     * @brief Render trajectory plot (X vs Y)
+     * @brief Render 3D trajectory plot (X, Y, Z) using isometric projection
      */
     void render_trajectory();
 
@@ -123,10 +123,11 @@ private:
     // Data storage (fixed-size ring buffer with std::array)
     DataManager data_;
 
-    // Trajectory data (X vs Y, not time series) - pre-allocated ring buffers
+    // Trajectory data (X, Y, Z) - pre-allocated ring buffers for 3D path
     static constexpr size_t max_trajectory_points_ = 1000;
     std::array<double, max_trajectory_points_> trajectory_x_;
     std::array<double, max_trajectory_points_> trajectory_y_;
+    std::array<double, max_trajectory_points_> trajectory_z_;
     size_t trajectory_size_{0};
     size_t trajectory_offset_{0};
 
@@ -141,7 +142,7 @@ private:
     std::vector<double> times_buffer_;
     std::vector<double> x_values_buffer_;
     std::vector<double> y_values_buffer_;
-    std::vector<double> theta_x_buffer_;
+    std::vector<double> varphi_x_buffer_;
     std::vector<double> theta_y_buffer_;
     std::vector<double> error_x_buffer_;
     std::vector<double> error_y_buffer_;
