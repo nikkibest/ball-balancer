@@ -37,18 +37,18 @@ Add `ServoAngles` state, servo dynamics integration, and the IK/FK mode switch t
 
 ### Tasks
 
-- [ ] Task 2.1: Add to `Application` (in `application.cpp` / `application.hpp`):
+- [x] Task 2.1: Add to `Application` (in `application.cpp` / `application.hpp`):
   - `TableKinematics kinematics_{params_}` member.
   - `ServoAngles servo_angles_{}` — current arm angles (integrated).
   - `ServoAngles servo_cmd_{}` — commanded arm angles (from IK or GUI sliders).
   - `enum class KinematicsMode { Pose, Servo }` with a `kinematics_mode_` member defaulting to `Pose`.
   - `bool ik_failed_{false}` flag updated each step.
 
-- [ ] Task 2.2: In **Pose mode** (default): each control tick, call `kinematics_.inverseKinematics(phi, theta, z_t)` to compute `servo_cmd_`; set `ik_failed_` if `nullopt`. Drive `servo_angles_` toward `servo_cmd_` with first-order dynamics: `alpha[i] += (cmd[i] - alpha[i]) / tau * dt` (Euler, at control rate 100 Hz).
+- [x] Task 2.2: In **Pose mode** (default): each control tick, call `kinematics_.inverseKinematics(phi, theta, z_t)` to compute `servo_cmd_`; set `ik_failed_` if `nullopt`. Drive `servo_angles_` toward `servo_cmd_` with first-order dynamics: `alpha[i] += (cmd[i] - alpha[i]) / tau * dt` (Euler, at control rate 100 Hz).
 
-- [ ] Task 2.3: In **Servo mode**: `servo_cmd_` is set directly by GUI sliders; call `kinematics_.forwardKinematics(servo_angles_, FKMethod::YouTubeClosedForm)` to get `{phi_fk, theta_fk, z_fk}`; write these into `state_(VARPHI_X)`, `state_(THETA_Y)`, `state_(Z_TABLE)` so the physics and renderer see the FK-derived pose.
+- [x] Task 2.3: In **Servo mode**: `servo_cmd_` is set directly by GUI sliders; call `kinematics_.forwardKinematics(servo_angles_, FKMethod::YouTubeClosedForm)` to get `{phi_fk, theta_fk, z_fk}`; write these into `state_(VARPHI_X)`, `state_(THETA_Y)`, `state_(Z_TABLE)` so the physics and renderer see the FK-derived pose.
 
-- [ ] Task 2.4: Expose `servo_angles_`, `ik_failed_`, `kinematics_mode_` to the GUI via getters on `Application` or pass them into `ControlPanel::render()` as a new `ArmStatus` struct.
+- [x] Task 2.4: Expose `servo_angles_`, `ik_failed_`, `kinematics_mode_` to the GUI via getters on `Application` or pass them into `ControlPanel::render()` as a new `ArmStatus` struct.
 
 ### Verification
 

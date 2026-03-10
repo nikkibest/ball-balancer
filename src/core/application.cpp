@@ -42,6 +42,7 @@ Application::Application(const SystemParameters& params)
     , running_(false)
     , simulation_time_(0.0)
     , accumulator_(0.0)
+    , kinematics_(params)
 {
 }
 
@@ -359,6 +360,51 @@ void main_loop_iteration() {
     if (steps_taken >= MAX_PHYSICS_STEPS) {
         app->accumulator_ = 0.0;
         std::cerr << "Warning: Physics running too slow, skipping time" << '\n';
+    }
+
+    // ====================================================================
+    // Kinematics: IK / FK and servo angle integration
+    // ====================================================================
+    {
+        const StateVector sim_state_vec = app->simulator_->get_state();
+        const double phi   = sim_state_vec(state_index::VARPHI_X);
+        const double theta = sim_state_vec(state_index::THETA_Y);
+        const double z_t   = sim_state_vec(state_index::Z_TABLE);
+
+        if (app->kinematics_mode_ == KinematicsMode::Pose) {
+            // Pose mode: compute servo commands via IK
+            auto result = app->kinematics_.inverseKinematics(phi, theta, z_t);
+            if (result) {
+                app->servo_cmd_ = *result;
+                app->ik_failed_ = false;
+            } else {
+                app->ik_failed_ = true;
+                // Keep last valid servo_cmd_
+            }
+        }
+        // In Servo mode, servo_cmd_ is written directly by GUI sliders (set_servo_cmd).
+
+        // First-order servo dynamics: integrate each arm angle toward its command
+        const double tau = app->params_.servo_time_constant;
+        const double dt  = app->params_.control_dt;
+        for (int i = 0; i < 3; ++i) {
+            app->servo_angles_.alpha[i] +=
+                (app->servo_cmd_.alpha[i] - app->servo_angles_.alpha[i]) / tau * dt;
+        }
+
+        if (app->kinematics_mode_ == KinematicsMode::Servo && sim_state == SimulationState::Running) {
+            // FK: derive table pose from current (integrated) servo angles
+            auto pose = app->kinematics_.forwardKinematics(
+                app->servo_angles_, FKMethod::YouTubeClosedForm);
+            if (pose) {
+                // Write FK result back into the simulator state so physics + renderer track it
+                StateVector s = app->simulator_->get_state();
+                s(state_index::VARPHI_X) = (*pose)[0];
+                s(state_index::THETA_Y)  = (*pose)[1];
+                s(state_index::Z_TABLE)  = (*pose)[2];
+                app->simulator_->set_state(s);
+            }
+        }
     }
 
     // ====================================================================
