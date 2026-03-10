@@ -124,6 +124,7 @@ set(BALL_BALANCER_SOURCES
     # Physics
     src/physics/simulator.cpp
     src/physics/ball_dynamics.cpp
+    src/physics/table_kinematics.cpp
 
     # Control
     src/control/pid_controller.cpp
@@ -154,6 +155,7 @@ set(BALL_BALANCER_HEADERS
     include/ball_balancer/core/types.hpp
 
     include/ball_balancer/physics/simulator.hpp
+    include/ball_balancer/physics/table_kinematics.hpp
 
     include/ball_balancer/control/pid_controller.hpp
     include/ball_balancer/control/state_estimator.hpp
