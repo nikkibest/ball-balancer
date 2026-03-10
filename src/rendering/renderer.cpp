@@ -223,6 +223,18 @@ bool Renderer::initialize(int width, int height) {
     std::cout << "[RENDERER] Created axes with " << axes_vertices.size() << " vertices" << '\n';
     axes_mesh_->set_data(axes_vertices);
 
+    // Legs mesh: 12 vertices (3 arms × 2 segments × 2 endpoints), updated dynamically each frame.
+    // Pre-fill with zeros; actual positions are uploaded by render_legs().
+    legs_mesh_ = std::make_unique<VertexArray>();
+    {
+        std::vector<Vertex> leg_verts(12, Vertex{
+            Eigen::Vector3f::Zero(),
+            Eigen::Vector3f(0.0f, 1.0f, 0.0f),
+            Eigen::Vector3f::Zero()
+        });
+        legs_mesh_->set_data(leg_verts);
+    }
+
 #ifdef __EMSCRIPTEN__
     emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Initialization complete!");
 #endif
@@ -409,6 +421,55 @@ void Renderer::render_axis_labels(ImVec2 clip_min, ImVec2 clip_max) {
     draw_label(tip_z, IM_COL32(80,  80,  255, 255), "Z");
 
     draw->PopClipRect();
+}
+
+void Renderer::render_legs(
+    const std::array<std::array<std::array<float, 3>, 3>, 3>& arm_points)
+{
+    if (!show_legs_ || !legs_mesh_) return;
+
+    // Per-arm colours: arm 0 = cyan, arm 1 = yellow, arm 2 = magenta
+    static const Eigen::Vector3f ARM_COLORS[3] = {
+        Eigen::Vector3f(0.0f, 1.0f, 1.0f),   // cyan
+        Eigen::Vector3f(1.0f, 1.0f, 0.0f),   // yellow
+        Eigen::Vector3f(1.0f, 0.0f, 1.0f)    // magenta
+    };
+
+    const Eigen::Vector3f normal(0.0f, 1.0f, 0.0f);
+
+    // Physics → OpenGL coordinate mapping: GL(x, y, z) = (phys_x, phys_z, phys_y)
+    auto phys_to_gl = [](const std::array<float, 3>& p) -> Eigen::Vector3f {
+        return Eigen::Vector3f(p[0], p[2], p[1]);
+    };
+
+    // Upload all 12 vertices at once (interleaved arms, but drawn per-arm for colour)
+    std::vector<Vertex> verts;
+    verts.reserve(12);
+    for (int i = 0; i < 3; ++i) {
+        const auto& pts = arm_points[i];   // {G, E, T}
+        const auto& col = ARM_COLORS[i];
+        verts.push_back({phys_to_gl(pts[0]), normal, col});  // G
+        verts.push_back({phys_to_gl(pts[1]), normal, col});  // E  (lower link)
+        verts.push_back({phys_to_gl(pts[1]), normal, col});  // E
+        verts.push_back({phys_to_gl(pts[2]), normal, col});  // T  (upper link)
+    }
+    legs_mesh_->set_data(verts);
+
+    // Use grid shader which outputs uColor as a flat colour.
+    // Draw each arm (4 vertices = 2 line segments) with its own colour.
+    grid_shader_->use();
+    Eigen::Matrix4f identity = Eigen::Matrix4f::Identity();
+    grid_shader_->set_uniform("uModel",      identity);
+    grid_shader_->set_uniform("uView",       camera_.get_view_matrix());
+    float aspect = static_cast<float>(width_) / static_cast<float>(height_);
+    grid_shader_->set_uniform("uProjection", Camera::get_projection_matrix(aspect));
+
+    legs_mesh_->bind();
+    for (int i = 0; i < 3; ++i) {
+        grid_shader_->set_uniform("uColor", ARM_COLORS[i]);
+        glDrawArrays(GL_LINES, i * 4, 4);   // 4 vertices per arm
+    }
+    legs_mesh_->unbind();
 }
 
 void Renderer::resize(int width, int height) {

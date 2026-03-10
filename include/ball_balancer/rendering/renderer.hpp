@@ -4,6 +4,7 @@
 #include <ball_balancer/rendering/shader.hpp>
 #include <ball_balancer/rendering/camera.hpp>
 #include <imgui.h>
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -151,6 +152,27 @@ public:
     void render_axis_labels(ImVec2 clip_min, ImVec2 clip_max);
 
     /**
+     * @brief Render the three arm legs as coloured GL_LINES.
+     *
+     * Each arm is drawn as two line segments: G→E (lower link) and E→T (upper link).
+     * Arm 0 = cyan, Arm 1 = yellow, Arm 2 = magenta.
+     *
+     * @param arm_points  World-space points in physics coordinates for each arm.
+     *                    Layout: arm_points[i] = { G, E, T } for arm i (i=0,1,2).
+     *                    Points are in physics space (X horizontal, Y horizontal, Z up).
+     *                    Renderer remaps to OpenGL: GL(x,y,z) = (phys_x, phys_z, phys_y).
+     *
+     * Does nothing if show_legs_ is false.
+     */
+    void render_legs(const std::array<std::array<std::array<float, 3>, 3>, 3>& arm_points);
+
+    /**
+     * @brief Show or hide the arm leg geometry.
+     */
+    void set_show_legs(bool show) { show_legs_ = show; }
+    bool get_show_legs() const    { return show_legs_; }
+
+    /**
      * @brief Get camera for user interaction
      * @return Reference to camera
      */
@@ -210,6 +232,10 @@ private:
     std::unique_ptr<VertexArray> table_mesh_;
     std::unique_ptr<VertexArray> grid_mesh_;
     std::unique_ptr<VertexArray> axes_mesh_;
+    std::unique_ptr<VertexArray> legs_mesh_;  ///< Dynamic lines for the 3 arm mechanisms
+
+    // Leg visibility toggle
+    bool show_legs_{true};
 
     // System parameters
     SystemParameters params_;

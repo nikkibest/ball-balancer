@@ -63,23 +63,23 @@ Add a `legs_mesh_` VAO to `Renderer` and upload/draw the 6 line segments (2 per 
 
 ### Tasks
 
-- [ ] Task 3.1: Add to `Renderer`:
+- [x] Task 3.1: Add to `Renderer`:
   - `std::unique_ptr<VertexArray> legs_mesh_` member.
   - `bool show_legs_{true}` flag.
   - Public `set_show_legs(bool)` and `render_legs(const ServoAngles&, double phi, double theta, double z_t)` method.
 
-- [ ] Task 3.2: In `Renderer::initialize()`: create `legs_mesh_` with `GL_DYNAMIC_DRAW` hint — allocate 12 vertices (6 segments × 2 endpoints), initial data can be all-zero.
+- [x] Task 3.2: In `Renderer::initialize()`: create `legs_mesh_` with `GL_DYNAMIC_DRAW` hint — allocate 12 vertices (6 segments × 2 endpoints), initial data can be all-zero.
 
-- [ ] Task 3.3: In `render_legs()`:
+- [x] Task 3.3: In `render_legs()`:
   - For each arm i (0..2): call `kinematics_.groundPoint(i)`, `kinematics_.elbowPosition(i, alpha[i])`, `kinematics_.tableAttachPoint(i, phi, theta, z_t)`.
   - Map physics → OpenGL coordinates: `GL(x, y, z) = (phys_x, phys_z, phys_y)`.
   - Build 12 `Vertex` entries (G, E per lower link; E, T per upper link) with per-arm colours (arm 0 = cyan, arm 1 = yellow, arm 2 = magenta).
   - Upload via `legs_mesh_->set_data(vertices)` and draw with `glDrawArrays(GL_LINES, 0, 12)` using `grid_shader_`.
   - Skip if `!show_legs_`.
 
-- [ ] Task 3.4: Call `renderer_.render_legs(servo_angles_, phi, theta, z_t)` in `Application::render()` after the main `renderer_.render(state_)` call.
+- [x] Task 3.4: Call `renderer_.render_legs(servo_angles_, phi, theta, z_t)` in `Application::render()` after the main `renderer_.render(state_)` call.
 
-- [ ] Task 3.5: Add `TableKinematics` reference or copy to `Renderer` so `render_legs` can call geometry helpers. Prefer passing a `const TableKinematics&` parameter or precomputing positions in `Application` and passing `std::array<std::array<float,3>,6>` world positions to avoid coupling.
+- [x] Task 3.5: Add `TableKinematics` reference or copy to `Renderer` so `render_legs` can call geometry helpers. Prefer passing a `const TableKinematics&` parameter or precomputing positions in `Application` and passing `std::array<std::array<float,3>,6>` world positions to avoid coupling.
 
 ### Verification
 

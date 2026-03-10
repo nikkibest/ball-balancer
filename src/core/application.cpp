@@ -459,6 +459,25 @@ void main_loop_iteration() {
     // Render 3D scene
     app->renderer_->render(current_state);
 
+    // Render arm legs: compute G, E, T for each arm in physics coords, pass to renderer
+    {
+        const double phi   = current_state(state_index::VARPHI_X);
+        const double theta = current_state(state_index::THETA_Y);
+        const double z_t   = current_state(state_index::Z_TABLE);
+
+        std::array<std::array<std::array<float, 3>, 3>, 3> arm_pts;
+        for (int i = 0; i < 3; ++i) {
+            const auto& kin = app->kinematics_;
+            const auto G = kin.groundPoint(i);
+            const auto E = kin.elbowPosition(i, app->servo_angles_.alpha[i]);
+            const auto T = kin.tableAttachPoint(i, phi, theta, z_t);
+            arm_pts[i][0] = {static_cast<float>(G[0]), static_cast<float>(G[1]), static_cast<float>(G[2])};
+            arm_pts[i][1] = {static_cast<float>(E[0]), static_cast<float>(E[1]), static_cast<float>(E[2])};
+            arm_pts[i][2] = {static_cast<float>(T[0]), static_cast<float>(T[1]), static_cast<float>(T[2])};
+        }
+        app->renderer_->render_legs(arm_pts);
+    }
+
     // Render GUI (on top of 3D scene)
     app->main_window_->begin_frame();
     app->main_window_->render(current_state, *app->controller_, *app->estimator_,
