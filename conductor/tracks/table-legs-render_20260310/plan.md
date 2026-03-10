@@ -3,7 +3,7 @@
 **Track ID:** table-legs-render_20260310
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-03-10
-**Status:** [ ] Not Started
+**Status:** [x] Complete
 
 ## Overview
 
@@ -94,9 +94,9 @@ Add an "Arm Mechanism" collapsing section to `ControlPanel` with all arm-related
 
 ### Tasks
 
-- [ ] Task 4.1: Add a `render_arm_mechanism()` method to `ControlPanel` and call it from `ControlPanel::render()` (after the existing separator for Kalman tuning).
+- [x] Task 4.1: Add a `render_arm_mechanism()` method to `ControlPanel` and call it from `ControlPanel::render()` (after the existing separator for Kalman tuning).
 
-- [ ] Task 4.2: Section contents:
+- [x] Task 4.2: Section contents:
   - **Show Legs** checkbox — toggles `renderer.set_show_legs()`.
   - **Mode** radio buttons: "Pose (IK)" and "Servo (FK)".
   - **Geometry parameters** (editable sliders): L1 [0.01–0.20 m], L2 [0.01–0.20 m], Rg [0.05–0.25 m], Rt [0.03–0.15 m], z_nominal [0.05–0.30 m]. Changes update `params_` in place and rebuild the `TableKinematics` object.
@@ -105,7 +105,7 @@ Add an "Arm Mechanism" collapsing section to `ControlPanel` with all arm-related
   - **Servo mode sliders**: when in Servo mode, three sliders for α₀, α₁, α₂ in degrees (convert to/from rad internally).
   - **FK verification**: when in Servo mode, show "FK → φ: X.XX°  θ: X.XX°  z: X.XXm".
 
-- [ ] Task 4.3: Thread `KinematicsMode`, `ik_failed_`, computed FK pose, and servo angle write-back through the `ControlPanel::render()` signature (or an `ArmStatus` struct). Update `main_window.cpp` call site.
+- [x] Task 4.3: Thread `KinematicsMode`, `ik_failed_`, computed FK pose, and servo angle write-back through the `ControlPanel::render()` signature (or an `ArmStatus` struct). Update `main_window.cpp` call site.
 
 ### Verification
 

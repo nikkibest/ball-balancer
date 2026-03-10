@@ -3,6 +3,7 @@
 #include <ball_balancer/core/types.hpp>
 #include <ball_balancer/control/pid_controller.hpp>
 #include <ball_balancer/control/state_estimator.hpp>
+#include <ball_balancer/physics/table_kinematics.hpp>
 #include <imgui.h>
 
 /**
@@ -38,6 +39,37 @@ enum class SimulationState {
 enum class ControllerState {
     Stopped,   ///< Controller not running
     Running,   ///< Controller running
+};
+
+/**
+ * @brief Bidirectional arm mechanism status shared between Application and ControlPanel.
+ *
+ * Application fills this each frame and passes it to ControlPanel::render().
+ * ControlPanel writes back mode/cmd changes so Application can act on them.
+ */
+struct ArmStatus {
+    ServoAngles servo_angles{};       ///< Current integrated servo angles (read-only from GUI)
+    ServoAngles servo_cmd{};          ///< Commanded servo angles (writable in Servo mode)
+    bool        ik_failed{false};     ///< True when last IK call returned nullopt
+    KinematicsMode mode{KinematicsMode::Pose}; ///< Active kinematics mode (read/write)
+    bool        show_legs{true};      ///< Leg visibility toggle (read/write)
+    bool        mode_changed{false};  ///< Set by GUI when mode radio button changes
+    bool        cmd_changed{false};   ///< Set by GUI when servo cmd sliders change
+    bool        show_legs_changed{false}; ///< Set by GUI when toggle changes
+
+    // FK verification output (filled by Application in Servo mode)
+    double fk_phi{0.0};
+    double fk_theta{0.0};
+    double fk_z{0.0};
+    bool   fk_valid{false};
+
+    // Geometry parameter change request (set by GUI sliders; Application rebuilds TableKinematics)
+    bool   geom_changed{false};
+    double req_L1{0.08};
+    double req_L2{0.08};
+    double req_Rg{0.10};
+    double req_Rt{0.07};
+    double req_z_nominal{0.12};
 };
 
 /**
@@ -79,6 +111,7 @@ public:
      * @param controller PID controller (for gain display/editing)
      * @param estimator State estimator (for tuning display/editing)
      * @param in_contact Whether the ball is currently in contact with the table
+     * @param arm_status Arm mechanism state (read/write — GUI fills cmd/mode changes)
      * @return true if window was visible this frame
      *
      * Must be called between ImGui::NewFrame() and ImGui::Render()
@@ -87,7 +120,8 @@ public:
         const StateVector& state,
         PIDController& controller,
         StateEstimator& estimator,
-        bool in_contact
+        bool in_contact,
+        ArmStatus& arm_status
     );
 
     /**
@@ -206,6 +240,12 @@ private:
      * @param in_contact Whether the ball is currently in contact with the table
      */
     void render_system_status(const StateVector& state, bool in_contact);
+
+    /**
+     * @brief Render arm mechanism section (kinematics mode, servo angles, FK display).
+     * @param arm_status  Bidirectional arm state; GUI reads current values and writes changes.
+     */
+    void render_arm_mechanism(ArmStatus& arm_status);
 
     // System parameters
     SystemParameters params_;

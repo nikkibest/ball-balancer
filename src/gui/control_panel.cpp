@@ -33,7 +33,8 @@ bool ControlPanel::render(
     const StateVector& state,
     PIDController& controller,
     StateEstimator& estimator,
-    bool in_contact
+    bool in_contact,
+    ArmStatus& arm_status
 ) {
     // IMPORTANT: Always call End() even if Begin() returns false
     // This is a critical ImGui requirement
@@ -45,7 +46,7 @@ bool ControlPanel::render(
     // Render sections
     render_simulation_controls();
     ImGui::Separator();
-    
+
     render_manual_controls();
     ImGui::Separator();
 
@@ -59,6 +60,9 @@ bool ControlPanel::render(
     ImGui::Separator();
 
     render_kalman_tuning(estimator);
+    ImGui::Separator();
+
+    render_arm_mechanism(arm_status);
     ImGui::Separator();
 
     render_system_status(state, in_contact);
@@ -511,6 +515,125 @@ bool ControlPanel::render_manual_state_sliders() {
     
 
     return manual_state_changed_;
+}
+
+void ControlPanel::render_arm_mechanism(ArmStatus& arm_status) {
+    if (!ImGui::CollapsingHeader("Arm Mechanism")) {
+        return;
+    }
+
+    // --- Show/Hide Legs toggle ---
+    bool showLegs = arm_status.show_legs;
+    if (ImGui::Checkbox("Show Legs", &showLegs)) {
+        arm_status.show_legs = showLegs;
+        arm_status.show_legs_changed = true;
+    }
+
+    ImGui::Spacing();
+
+    // --- Mode radio buttons ---
+    ImGui::Text("Drive Mode:");
+    ImGui::SameLine();
+    int modeInt = (arm_status.mode == KinematicsMode::Servo) ? 1 : 0;
+    if (ImGui::RadioButton("Pose (IK)", modeInt == 0)) {
+        if (modeInt != 0) {
+            arm_status.mode = KinematicsMode::Pose;
+            arm_status.mode_changed = true;
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Servo (FK)", modeInt == 1)) {
+        if (modeInt != 1) {
+            arm_status.mode = KinematicsMode::Servo;
+            arm_status.mode_changed = true;
+        }
+    }
+
+    ImGui::Spacing();
+
+    // --- IK status indicator ---
+    ImGui::Text("IK Status:");
+    ImGui::SameLine();
+    if (arm_status.ik_failed) {
+        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "FAIL");
+    } else {
+        ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "OK");
+    }
+
+    ImGui::Spacing();
+
+    // --- Servo angles readout ---
+    if (ImGui::TreeNode("Servo Angles (current)")) {
+        const auto& a = arm_status.servo_angles.alpha;
+        ImGui::Text("alpha_0: %.2f deg", a[0] * 180.0 / M_PI);
+        ImGui::Text("alpha_1: %.2f deg", a[1] * 180.0 / M_PI);
+        ImGui::Text("alpha_2: %.2f deg", a[2] * 180.0 / M_PI);
+        ImGui::TreePop();
+    }
+
+    // --- Servo-mode sliders (only active in Servo mode) ---
+    if (arm_status.mode == KinematicsMode::Servo) {
+        ImGui::Spacing();
+        ImGui::TextUnformatted("Servo Commands (deg)");
+        for (int i = 0; i < 3; ++i) {
+            float deg = static_cast<float>(arm_status.servo_cmd.alpha[i] * 180.0 / M_PI);
+            char label[32];
+            snprintf(label, sizeof(label), "alpha_%d##srv", i);
+            if (ImGui::SliderFloat(label, &deg, -90.0f, 90.0f, "%.1f")) {
+                arm_status.servo_cmd.alpha[i] = static_cast<double>(deg) * M_PI / 180.0;
+                arm_status.cmd_changed = true;
+            }
+        }
+
+        // --- FK verification display ---
+        ImGui::Spacing();
+        ImGui::TextUnformatted("FK Result:");
+        ImGui::Indent();
+        if (arm_status.fk_valid) {
+            ImGui::Text("phi:   %.2f deg", arm_status.fk_phi   * 180.0 / M_PI);
+            ImGui::Text("theta: %.2f deg", arm_status.fk_theta * 180.0 / M_PI);
+            ImGui::Text("z:     %.4f m",   arm_status.fk_z);
+        } else {
+            ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.2f, 1.0f), "FK invalid");
+        }
+        ImGui::Unindent();
+    }
+
+    ImGui::Spacing();
+
+    // --- Geometry parameters ---
+    if (ImGui::TreeNode("Geometry Parameters")) {
+        ImGui::TextWrapped("Edit arm mechanism dimensions. Changes take effect immediately.");
+        bool geomChanged = false;
+
+        float L1 = static_cast<float>(arm_status.req_L1);
+        float L2 = static_cast<float>(arm_status.req_L2);
+        float Rg = static_cast<float>(arm_status.req_Rg);
+        float Rt = static_cast<float>(arm_status.req_Rt);
+        float zn = static_cast<float>(arm_status.req_z_nominal);
+
+        ImGui::Text("L1 (lower link)");
+        geomChanged |= ImGui::SliderFloat("##L1", &L1, 0.01f, 0.20f, "%.3f m");
+        ImGui::Text("L2 (upper link)");
+        geomChanged |= ImGui::SliderFloat("##L2", &L2, 0.01f, 0.20f, "%.3f m");
+        ImGui::Text("Rg (ground radius)");
+        geomChanged |= ImGui::SliderFloat("##Rg", &Rg, 0.05f, 0.25f, "%.3f m");
+        ImGui::Text("Rt (table radius)");
+        geomChanged |= ImGui::SliderFloat("##Rt", &Rt, 0.03f, 0.15f, "%.3f m");
+        ImGui::Text("z_nominal (FK warm-start)");
+        geomChanged |= ImGui::SliderFloat("##znom", &zn, 0.05f, 0.30f, "%.3f m");
+
+        if (geomChanged) {
+            arm_status.req_L1       = static_cast<double>(L1);
+            arm_status.req_L2       = static_cast<double>(L2);
+            arm_status.req_Rg       = static_cast<double>(Rg);
+            arm_status.req_Rt       = static_cast<double>(Rt);
+            arm_status.req_z_nominal = static_cast<double>(zn);
+            arm_status.geom_changed = true;
+        }
+
+        ImGui::TreePop();
+    }
 }
 
 } // namespace ball_balancer

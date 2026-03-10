@@ -94,6 +94,8 @@ public:
      * @param estimator State estimator
      * @param renderer 3D renderer
      * @param plotter Real-time data plotter
+     * @param in_contact Whether ball is in contact with table
+     * @param arm_status Arm mechanism state (read/write)
      *
      * Renders all UI panels. Call between begin_frame() and end_frame().
      */
@@ -103,7 +105,8 @@ public:
         StateEstimator& estimator,
         Renderer& renderer,
         RealTimePlotter& plotter,
-        bool in_contact
+        bool in_contact,
+        ArmStatus& arm_status
     );
 
     /**

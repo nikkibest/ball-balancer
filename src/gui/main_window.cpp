@@ -122,7 +122,8 @@ void MainWindow::render(
     StateEstimator& estimator,
     Renderer& renderer,
     RealTimePlotter& plotter,
-    bool in_contact
+    bool in_contact,
+    ArmStatus& arm_status
 ) {
     // Render menu bar (outside dockspace)
     render_menu_bar();
@@ -138,7 +139,7 @@ void MainWindow::render(
 
     // Render panels
     if (show_control_panel_) {
-        control_panel_->render(state, controller, estimator, in_contact);
+        control_panel_->render(state, controller, estimator, in_contact, arm_status);
     }
 
     // Plots panel rendered by RealTimePlotter

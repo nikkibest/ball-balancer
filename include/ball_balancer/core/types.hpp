@@ -192,6 +192,13 @@ struct SystemParameters {
     // Control timing
     double control_dt{0.01};           // Control loop time step (s) = 100Hz
 
+    // Arm mechanism geometry (used by TableKinematics)
+    double arm_L1{0.08};              // Lower link length: servo pivot to elbow (m)
+    double arm_L2{0.08};              // Upper link length: elbow to table attachment (m)
+    double arm_Rg{0.10};              // Ground mounting radius: centre to servo pivot (m)
+    double arm_Rt{0.07};              // Table mounting radius: centre to table attachment (m)
+    double arm_z_nominal{0.12};       // Nominal table height for FK warm-start (m)
+
     /**
      * @brief Default constructor - initializes derived parameters
      */
@@ -294,5 +301,20 @@ inline MeasurementVector make_measurement(double x, double y) {
     meas(measurement_index::Y_MEAS) = y;
     return meas;
 }
+
+// ============================================================================
+// Kinematics Mode
+// ============================================================================
+
+/**
+ * @brief Controls how the table pose is driven.
+ *
+ * Pose  — set (φ, θ, z_t) via GUI; IK computes servo commands.
+ * Servo — set α_i per arm via GUI; FK computes table pose.
+ */
+enum class KinematicsMode {
+    Pose,   ///< Pose-mode: IK drives servo angles from (phi, theta, z_t)
+    Servo   ///< Servo-mode: FK drives table pose from individual arm angles
+};
 
 } // namespace ball_balancer

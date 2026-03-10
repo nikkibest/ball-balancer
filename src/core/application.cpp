@@ -4,6 +4,7 @@
 #include <ball_balancer/control/state_estimator.hpp>
 #include <ball_balancer/rendering/renderer.hpp>
 #include <ball_balancer/gui/main_window.hpp>
+#include <ball_balancer/gui/control_panel.hpp>
 #include <ball_balancer/visualization/real_time_plotter.hpp>
 #ifdef __EMSCRIPTEN__
     #include <GLES3/gl3.h>  // Emscripten's OpenGL ES 3.0 headers
@@ -480,10 +481,56 @@ void main_loop_iteration() {
 
     // Render GUI (on top of 3D scene)
     app->main_window_->begin_frame();
+
+    // Build ArmStatus for GUI exchange
+    ArmStatus arm_status;
+    arm_status.servo_angles  = app->servo_angles_;
+    arm_status.servo_cmd     = app->servo_cmd_;
+    arm_status.ik_failed     = app->ik_failed_;
+    arm_status.mode          = app->kinematics_mode_;
+    arm_status.show_legs     = app->renderer_->get_show_legs();
+    // Populate geometry from current params
+    arm_status.req_L1        = app->params_.arm_L1;
+    arm_status.req_L2        = app->params_.arm_L2;
+    arm_status.req_Rg        = app->params_.arm_Rg;
+    arm_status.req_Rt        = app->params_.arm_Rt;
+    arm_status.req_z_nominal = app->params_.arm_z_nominal;
+    // Populate FK result if in Servo mode
+    if (app->kinematics_mode_ == KinematicsMode::Servo) {
+        auto pose = app->kinematics_.forwardKinematics(
+            app->servo_angles_, FKMethod::YouTubeClosedForm);
+        if (pose) {
+            arm_status.fk_phi   = (*pose)[0];
+            arm_status.fk_theta = (*pose)[1];
+            arm_status.fk_z     = (*pose)[2];
+            arm_status.fk_valid = true;
+        }
+    }
+
     app->main_window_->render(current_state, *app->controller_, *app->estimator_,
                               *app->renderer_, *app->plotter_,
-                              app->simulator_->isInContact());
+                              app->simulator_->isInContact(), arm_status);
     app->main_window_->end_frame();
+
+    // Apply ArmStatus changes written by GUI
+    if (arm_status.show_legs_changed) {
+        app->renderer_->set_show_legs(arm_status.show_legs);
+    }
+    if (arm_status.mode_changed) {
+        app->kinematics_mode_ = arm_status.mode;
+    }
+    if (arm_status.cmd_changed && app->kinematics_mode_ == KinematicsMode::Servo) {
+        app->servo_cmd_ = arm_status.servo_cmd;
+    }
+    if (arm_status.geom_changed) {
+        app->params_.arm_L1        = arm_status.req_L1;
+        app->params_.arm_L2        = arm_status.req_L2;
+        app->params_.arm_Rg        = arm_status.req_Rg;
+        app->params_.arm_Rt        = arm_status.req_Rt;
+        app->params_.arm_z_nominal = arm_status.req_z_nominal;
+        // Rebuild kinematics with updated geometry
+        app->kinematics_ = TableKinematics(app->params_);
+    }
 
     // Check if user requested exit from GUI
     if (app->main_window_->should_exit()) {

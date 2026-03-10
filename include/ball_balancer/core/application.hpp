@@ -28,17 +28,6 @@ class Renderer;
 class MainWindow;
 class RealTimePlotter;
 
-/**
- * @brief Controls how the table pose is driven.
- *
- * Pose  — set (φ, θ, z_t) via GUI; IK computes servo commands.
- * Servo — set α_i per arm via GUI; FK computes table pose.
- */
-enum class KinematicsMode {
-    Pose,   ///< Pose-mode: IK drives servo angles from (phi, theta, z_t)
-    Servo   ///< Servo-mode: FK drives table pose from individual arm angles
-};
-
 // Forward declaration of main loop callback function
 void main_loop_iteration();
 
