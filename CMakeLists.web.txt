@@ -138,6 +138,7 @@ set(BALL_BALANCER_SOURCES
     # Physics
     src/physics/ball_dynamics.cpp
     src/physics/simulator.cpp
+    src/physics/table_kinematics.cpp
 
     # Control
     src/control/pid_controller.cpp
