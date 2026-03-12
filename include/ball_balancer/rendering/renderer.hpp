@@ -141,6 +141,14 @@ public:
     void resize(int width, int height);
 
     /**
+     * @brief Rebuild the table disc mesh with a new radius.
+     *
+     * Call whenever arm_Rt changes so the rendered disc matches the
+     * simulator boundary and leg attachment radius.
+     */
+    void set_table_radius(float radius);
+
+    /**
      * @brief Render axis labels "X", "Y", "Z" as an ImGui overlay
      * @param clip_min Top-left of the region to clip labels to (screen pixels)
      * @param clip_max Bottom-right of the region to clip labels to
@@ -152,10 +160,11 @@ public:
     void render_axis_labels(ImVec2 clip_min, ImVec2 clip_max);
 
     /**
-     * @brief Render the three arm legs as coloured GL_LINES.
+     * @brief Render the three arm legs as shaded 3D cylinders with sphere joints.
      *
-     * Each arm is drawn as two line segments: G→E (lower link) and E→T (upper link).
-     * Arm 0 = cyan, Arm 1 = yellow, Arm 2 = magenta.
+     * Each arm is drawn as two cylinder links (G→E lower, E→T upper) with a sphere
+     * at the elbow joint. Uses Phong lighting via basic_shader_.
+     * Arm 0 = cyan, Arm 1 = yellow, Arm 2 = magenta (lower link is darker).
      *
      * @param arm_points  World-space points in physics coordinates for each arm.
      *                    Layout: arm_points[i] = { G, E, T } for arm i (i=0,1,2).
@@ -189,12 +198,12 @@ private:
     std::vector<Vertex> create_sphere(float radius, int segments = 32);
 
     /**
-     * @brief Create plane geometry
-     * @param width Plane width
-     * @param height Plane height
-     * @return Vertex data for plane
+     * @brief Create circular disc geometry (table top)
+     * @param radius Disc radius (matches arm_Rt)
+     * @param segments Number of triangular segments (64 for smooth appearance)
+     * @return Vertex data for disc (fan of triangles in XZ plane)
      */
-    std::vector<Vertex> create_plane(float width, float height);
+    std::vector<Vertex> create_disc(float radius, int segments = 64);
 
     /**
      * @brief Create grid floor geometry
@@ -210,6 +219,16 @@ private:
      * @return Vertex data for XYZ axes
      */
     std::vector<Vertex> create_axes(float length);
+
+    /**
+     * @brief Create unit cylinder geometry (axis along Y, radius=1, Y in [-0.5, +0.5])
+     * @param segments Number of radial segments (16 is sufficient)
+     * @return Vertex data for cylinder (sides + caps), white colour (overridden by uColor)
+     *
+     * The unit dimensions let a single matrix (R*S + T) place any cylinder between
+     * two world-space points via the stretch-and-orient technique.
+     */
+    std::vector<Vertex> create_cylinder(int segments = 16);
 
     // Rendering state
     int width_;
@@ -232,7 +251,8 @@ private:
     std::unique_ptr<VertexArray> table_mesh_;
     std::unique_ptr<VertexArray> grid_mesh_;
     std::unique_ptr<VertexArray> axes_mesh_;
-    std::unique_ptr<VertexArray> legs_mesh_;  ///< Dynamic lines for the 3 arm mechanisms
+    std::unique_ptr<VertexArray> cylinder_mesh_;     ///< Unit cylinder (Y axis, radius=1) for arm links
+    std::unique_ptr<VertexArray> joint_sphere_mesh_; ///< Small sphere for elbow joint visualization
 
     // Leg visibility toggle
     bool show_legs_{true};

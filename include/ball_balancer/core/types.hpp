@@ -170,10 +170,9 @@ struct SystemParameters {
     double ball_inertia{0.0};          // Moment of inertia (auto-computed in constructor via initialize())
 
     // Table properties
-    double table_length{0.5};          // Table dimension X (m)
-    double table_width{0.5};           // Table dimension Y (m)
+    double table_radius{0.07};         // Table disc radius (m) — kept in sync with arm_Rt by initialize()
     double max_tilt_angle{0.174};      // Max tilt angle (rad) = 10 degrees
-    double min_table_height{0.0};      // Minimum table height (m)
+    double min_table_height{0.01};     // Minimum table height (m)
     double max_table_height{0.5};      // Maximum table height (m)
 
     // Servo dynamics (simplified first-order)
@@ -193,11 +192,11 @@ struct SystemParameters {
     double control_dt{0.01};           // Control loop time step (s) = 100Hz
 
     // Arm mechanism geometry (used by TableKinematics)
-    double arm_L1{0.08};              // Lower link length: servo pivot to elbow (m)
-    double arm_L2{0.08};              // Upper link length: elbow to table attachment (m)
-    double arm_Rg{0.10};              // Ground mounting radius: centre to servo pivot (m)
-    double arm_Rt{0.07};              // Table mounting radius: centre to table attachment (m)
-    double arm_z_nominal{0.12};       // Nominal table height for FK warm-start (m)
+    double arm_L1{0.10};              // Lower link length: servo pivot to elbow (m)
+    double arm_L2{0.10};              // Upper link length: elbow to table attachment (m)
+    double arm_Rg{0.15};              // Ground mounting radius: centre to servo pivot (m)
+    double arm_Rt{0.15};              // Table mounting radius: centre to table attachment (m)
+    double arm_z_nominal{0.08};       // Nominal table height for FK warm-start (m)
 
     /**
      * @brief Default constructor - initializes derived parameters
@@ -216,6 +215,8 @@ struct SystemParameters {
     void initialize() {
         // Ball moment of inertia for solid sphere: I = (2/5)*m*r^2
         ball_inertia = 0.4 * ball_mass * ball_radius * ball_radius;
+        // Table disc radius matches the arm table-attachment radius
+        table_radius = arm_Rt;
     }
 
     /**

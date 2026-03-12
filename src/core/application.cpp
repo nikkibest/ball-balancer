@@ -159,6 +159,8 @@ bool Application::initialize() {
 
     // Reset simulation to initial state
     StateVector initial_state = StateVector::Zero();
+    initial_state(state_index::Z_TABLE) = params_.arm_z_nominal;
+    initial_state(state_index::Z_BALL)  = params_.arm_z_nominal + params_.ball_radius;
     simulator_->reset(initial_state);
     estimator_->reset(initial_state);
     controller_->reset();
@@ -317,6 +319,20 @@ void main_loop_iteration() {
     Eigen::Vector2d setpoint = app->main_window_->get_control_panel().get_setpoint();
     ControlVector manual_control = app->main_window_->get_control_panel().get_manual_control();
 
+    // Detect Stopped/Paused → Running transition: snap ball Z to table surface
+    if (sim_state == SimulationState::Running &&
+        app->prev_sim_state_ != SimulationState::Running)
+    {
+        StateVector s = app->simulator_->get_state();
+        const double z_t      = s(state_index::Z_TABLE);
+        const double z_surface = z_t + app->params_.ball_radius;
+        s(state_index::Z_BALL)  = z_surface;
+        s(state_index::VZ_BALL) = 0.0;
+        app->simulator_->set_state(s);
+        app->estimator_->reset(s);
+    }
+    app->prev_sim_state_ = sim_state;
+
     int steps_taken = 0;
     while (app->accumulator_ >= physics_dt && steps_taken < MAX_PHYSICS_STEPS) {
         if (sim_state == SimulationState::Running) {
@@ -428,6 +444,8 @@ void main_loop_iteration() {
     // ====================================================================
     if (app->main_window_->get_control_panel().should_reset()) {
         StateVector initial_state = StateVector::Zero();
+        initial_state(state_index::Z_TABLE) = app->params_.arm_z_nominal;
+        initial_state(state_index::Z_BALL)  = app->params_.arm_z_nominal + app->params_.ball_radius;
         app->simulator_->reset(initial_state);
         app->estimator_->reset(initial_state);
         app->controller_->reset();
@@ -528,8 +546,11 @@ void main_loop_iteration() {
         app->params_.arm_Rg        = arm_status.req_Rg;
         app->params_.arm_Rt        = arm_status.req_Rt;
         app->params_.arm_z_nominal = arm_status.req_z_nominal;
-        // Rebuild kinematics with updated geometry
+        // Sync table_radius = arm_Rt, then propagate to all subsystems
+        app->params_.initialize();
         app->kinematics_ = TableKinematics(app->params_);
+        app->simulator_->set_table_radius(app->params_.table_radius);
+        app->renderer_->set_table_radius(static_cast<float>(app->params_.table_radius));
     }
 
     // Check if user requested exit from GUI

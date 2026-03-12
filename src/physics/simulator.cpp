@@ -34,8 +34,8 @@ Simulator::Simulator(const SystemParameters& params)
     params_.initialize();
 
     // Place ball resting on flat table at default position
-    state_(state_index::Z_BALL)  = params_.ball_radius;  // z_b = r (flat table, z_t=0)
-    state_(state_index::Z_TABLE) = 0.0;
+    state_(state_index::Z_TABLE) = params_.arm_z_nominal;
+    state_(state_index::Z_BALL)  = params_.arm_z_nominal + params_.ball_radius;
 }
 
 void Simulator::step(double dt, const ControlVector& control) {
@@ -217,25 +217,33 @@ void Simulator::enforce_constraints() {
         }
     }
 
-    // --- Table boundary clamp (X / Y) ---
-    const double half_len   = params_.table_length / 2.0;
-    const double half_width = params_.table_width  / 2.0;
-    const double bounce     = params_.bounce_coeff;
+    // --- Table boundary clamp (circular disc, radius = table_radius) ---
+    // Note: x and y were declared above for the contact constraint; re-read after
+    // possible Z_BALL snap (position is unchanged, but re-read for clarity).
+    const double r2 = state_(state_index::X) * state_(state_index::X)
+                    + state_(state_index::Y) * state_(state_index::Y);
+    const double R      = params_.table_radius;
+    const double bounce = params_.bounce_coeff;
 
-    if (state_(state_index::X) > half_len) {
-        state_(state_index::X)  = half_len;
-        state_(state_index::VX) = -bounce * state_(state_index::VX);
-    } else if (state_(state_index::X) < -half_len) {
-        state_(state_index::X)  = -half_len;
-        state_(state_index::VX) = -bounce * state_(state_index::VX);
-    }
+    if (r2 > R * R) {
+        // Radial distance exceeds table radius — project back onto the disc edge
+        const double bx      = state_(state_index::X);
+        const double by      = state_(state_index::Y);
+        const double r_dist  = std::sqrt(r2);
+        const double scale   = R / r_dist;
+        state_(state_index::X) = bx * scale;
+        state_(state_index::Y) = by * scale;
 
-    if (state_(state_index::Y) > half_width) {
-        state_(state_index::Y)  = half_width;
-        state_(state_index::VY) = -bounce * state_(state_index::VY);
-    } else if (state_(state_index::Y) < -half_width) {
-        state_(state_index::Y)  = -half_width;
-        state_(state_index::VY) = -bounce * state_(state_index::VY);
+        // Reflect the radial component of velocity and damp by bounce coefficient.
+        // The tangential component is preserved.
+        const double nx  = bx / r_dist;   // outward radial unit vector
+        const double ny  = by / r_dist;
+        const double vx  = state_(state_index::VX);
+        const double vy  = state_(state_index::VY);
+        const double v_r = vx * nx + vy * ny;  // radial velocity component
+
+        state_(state_index::VX) = vx - (1.0 + bounce) * v_r * nx;
+        state_(state_index::VY) = vy - (1.0 + bounce) * v_r * ny;
     }
 }
 

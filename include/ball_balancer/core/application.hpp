@@ -4,6 +4,7 @@
 #include <chrono>
 #include <ball_balancer/core/types.hpp>
 #include <ball_balancer/physics/table_kinematics.hpp>
+#include <ball_balancer/gui/control_panel.hpp>
 
 /**
  * @file application.hpp
@@ -158,6 +159,7 @@ private:
     bool prev_left_mouse_{false};
     bool prev_right_mouse_{false};
     int plot_counter_{0};
+    SimulationState prev_sim_state_{SimulationState::Stopped};
 
     // -----------------------------------------------------------------------
     // Arm mechanism kinematics state

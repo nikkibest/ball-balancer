@@ -158,8 +158,8 @@ void RealTimePlotter::clear() {
 void RealTimePlotter::render_trajectory() {
     const float plot_height = 340.0f;
 
-    const double tx = params_.table_length / 2.0;
-    const double ty = params_.table_width  / 2.0;
+    const double tx = params_.table_radius;
+    const double ty = params_.table_radius;
 
     // Auto Z range: scan the last 1 s of trajectory (100 points at 100 Hz), add 5% margin
     double z_min_data = 0.0;

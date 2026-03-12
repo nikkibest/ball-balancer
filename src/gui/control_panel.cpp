@@ -181,13 +181,15 @@ void ControlPanel::render_manual_controls() {
         float theta_y_cmd_ = static_cast<float>(control_(control_index::THETA_Y_CMD)); 
         float table_z_cmd_ = static_cast<float>(control_(control_index::TABLE_Z_CMD)); 
 
-        if (ImGui::SliderFloat("##varphi_x_cmd", &varphi_x_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
+        if (ImGui::SliderFloat("Varphi (x)##varphi_x_cmd", &varphi_x_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
             control_(control_index::VARPHI_X_CMD) = varphi_x_cmd_;
         }
-        if (ImGui::SliderFloat("##theta_y_cmd", &theta_y_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
+        if (ImGui::SliderFloat("Theta (y)##theta_y_cmd", &theta_y_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
             control_(control_index::THETA_Y_CMD) = theta_y_cmd_;
         }
-        if (ImGui::SliderFloat("##table_z_cmd", &table_z_cmd_, params_.min_table_height, params_.max_table_height, "%.3f")) {
+        const float z_min = 0.01f;
+        const float z_max = static_cast<float>(params_.arm_L1 + params_.arm_L2);
+        if (ImGui::SliderFloat("z_t##table_z_cmd", &table_z_cmd_, z_min, z_max, "%.3f")) {
             control_(control_index::TABLE_Z_CMD) = table_z_cmd_;
         }
         float button_width = ImGui::GetContentRegionAvail().x;
@@ -203,7 +205,7 @@ void ControlPanel::render_setpoint_controls() {
     if (ImGui::CollapsingHeader("Target Position", ImGuiTreeNodeFlags_DefaultOpen)) {
         // X position setpoint
         float x = static_cast<float>(setpoint_.x());
-        float x_limit = static_cast<float>(params_.table_length / 2.0 - params_.ball_radius);
+        float x_limit = static_cast<float>(params_.table_radius - params_.ball_radius);
 
         ImGui::Text("X Position");
         if (ImGui::SliderFloat("##setpoint_x", &x, -x_limit, x_limit, "%.3f m")) {
@@ -212,7 +214,7 @@ void ControlPanel::render_setpoint_controls() {
 
         // Y position setpoint
         float y = static_cast<float>(setpoint_.y());
-        float y_limit = static_cast<float>(params_.table_width / 2.0 - params_.ball_radius);
+        float y_limit = static_cast<float>(params_.table_radius - params_.ball_radius);
 
         ImGui::Text("Y Position");
         if (ImGui::SliderFloat("##setpoint_y", &y, -y_limit, y_limit, "%.3f m")) {
@@ -463,7 +465,7 @@ bool ControlPanel::render_manual_state_sliders() {
     float y = static_cast<float>(manual_state_(state_index::Y));
     float z_ball = static_cast<float>(manual_state_(state_index::Z_BALL));
 
-    const float half_table = static_cast<float>(params_.table_length / 2.0);
+    const float half_table = static_cast<float>(params_.table_radius);
 
     if (ImGui::SliderFloat("x##ms",     &x,      -half_table, half_table, "%.3f")) {
         manual_state_(state_index::X) = x;
@@ -498,8 +500,10 @@ bool ControlPanel::render_manual_state_sliders() {
     ImGui::Spacing();
     ImGui::TextUnformatted("Table Height (m)");
 
+    const float z_t_min = 0.01f;
+    const float z_t_max = static_cast<float>(params_.arm_L1 + params_.arm_L2);
     float z_table = static_cast<float>(manual_state_(state_index::Z_TABLE));
-    if (ImGui::SliderFloat("z_table##ms", &z_table, -0.1f, 0.2f, "%.3f")) {
+    if (ImGui::SliderFloat("z_table##ms", &z_table, z_t_min, z_t_max, "%.3f")) {
         manual_state_(state_index::Z_TABLE) = z_table;
         manual_state_changed_ = true;
     }
@@ -509,6 +513,8 @@ bool ControlPanel::render_manual_state_sliders() {
     float btn_w = ImGui::GetContentRegionAvail().x;
     if (ImGui::Button("Zero All States##ms", ImVec2(btn_w, 0))) {
         manual_state_ = StateVector::Zero();
+        manual_state_(state_index::Z_TABLE) = params_.min_table_height;
+        manual_state_(state_index::Z_BALL)  = params_.min_table_height + params_.ball_radius;
         manual_state_changed_ = true;
     }
 

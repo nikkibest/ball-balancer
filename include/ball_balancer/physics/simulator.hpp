@@ -89,6 +89,12 @@ public:
     void set_state(const StateVector& state) { state_ = state; }
 
     /**
+     * @brief Update the table radius used for boundary clamping.
+     * @param radius New table radius (m)
+     */
+    void set_table_radius(double radius) { params_.table_radius = radius; }
+
+    /**
      * @brief Get simulated camera measurement (with noise)
      * @return Measured ball position with Gaussian noise
      *

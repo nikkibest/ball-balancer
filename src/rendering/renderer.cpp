@@ -200,11 +200,11 @@ bool Renderer::initialize(int width, int height) {
     ball_mesh_->set_data(sphere_vertices);
 
     table_mesh_ = std::make_unique<VertexArray>();
-    std::vector<Vertex> plane_vertices = create_plane(params_.table_length, params_.table_width);
+    std::vector<Vertex> plane_vertices = create_disc(static_cast<float>(params_.table_radius), 64);
 #ifdef __EMSCRIPTEN__
-    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created plane with %d vertices", (int)plane_vertices.size());
+    emscripten_log(EM_LOG_CONSOLE, "[RENDERER] Created disc with %d vertices", (int)plane_vertices.size());
 #endif
-    std::cout << "[RENDERER] Created plane with " << plane_vertices.size() << " vertices" << '\n';
+    std::cout << "[RENDERER] Created disc with " << plane_vertices.size() << " vertices" << '\n';
     table_mesh_->set_data(plane_vertices);
 
     grid_mesh_ = std::make_unique<VertexArray>();
@@ -223,16 +223,21 @@ bool Renderer::initialize(int width, int height) {
     std::cout << "[RENDERER] Created axes with " << axes_vertices.size() << " vertices" << '\n';
     axes_mesh_->set_data(axes_vertices);
 
-    // Legs mesh: 12 vertices (3 arms × 2 segments × 2 endpoints), updated dynamically each frame.
-    // Pre-fill with zeros; actual positions are uploaded by render_legs().
-    legs_mesh_ = std::make_unique<VertexArray>();
+    // Cylinder mesh: unit cylinder along Y, radius=1, Y in [-0.5, +0.5].
+    // Static — a stretch-and-orient model matrix places it between any two points.
+    cylinder_mesh_ = std::make_unique<VertexArray>();
     {
-        std::vector<Vertex> leg_verts(12, Vertex{
-            Eigen::Vector3f::Zero(),
-            Eigen::Vector3f(0.0f, 1.0f, 0.0f),
-            Eigen::Vector3f::Zero()
-        });
-        legs_mesh_->set_data(leg_verts);
+        std::vector<Vertex> cyl_verts = create_cylinder(16);
+        cylinder_mesh_->set_data(cyl_verts);
+        std::cout << "[RENDERER] Created cylinder mesh, " << cyl_verts.size() << " vertices\n";
+    }
+
+    // Joint sphere mesh: small sphere for elbow joint visualization.
+    joint_sphere_mesh_ = std::make_unique<VertexArray>();
+    {
+        std::vector<Vertex> sph_verts = create_sphere(0.012f, 16);
+        joint_sphere_mesh_->set_data(sph_verts);
+        std::cout << "[RENDERER] Created joint sphere mesh, " << sph_verts.size() << " vertices\n";
     }
 
 #ifdef __EMSCRIPTEN__
@@ -426,7 +431,7 @@ void Renderer::render_axis_labels(ImVec2 clip_min, ImVec2 clip_max) {
 void Renderer::render_legs(
     const std::array<std::array<std::array<float, 3>, 3>, 3>& arm_points)
 {
-    if (!show_legs_ || !legs_mesh_) return;
+    if (!show_legs_ || !cylinder_mesh_ || !joint_sphere_mesh_) return;
 
     // Per-arm colours: arm 0 = cyan, arm 1 = yellow, arm 2 = magenta
     static const Eigen::Vector3f ARM_COLORS[3] = {
@@ -434,48 +439,148 @@ void Renderer::render_legs(
         Eigen::Vector3f(1.0f, 1.0f, 0.0f),   // yellow
         Eigen::Vector3f(1.0f, 0.0f, 1.0f)    // magenta
     };
+    // Lower link (G→E) uses a darker shade to visually distinguish the two links.
+    constexpr float LOWER_SHADE = 0.60f;
 
-    const Eigen::Vector3f normal(0.0f, 1.0f, 0.0f);
+    // Cylinder radius in world-space metres.
+    constexpr float CYLINDER_RADIUS = 0.010f;   // 10 mm rod
 
     // Physics → OpenGL coordinate mapping: GL(x, y, z) = (phys_x, phys_z, phys_y)
     auto phys_to_gl = [](const std::array<float, 3>& p) -> Eigen::Vector3f {
         return Eigen::Vector3f(p[0], p[2], p[1]);
     };
 
-    // Upload all 12 vertices at once (interleaved arms, but drawn per-arm for colour)
-    std::vector<Vertex> verts;
-    verts.reserve(12);
-    for (int i = 0; i < 3; ++i) {
-        const auto& pts = arm_points[i];   // {G, E, T}
-        const auto& col = ARM_COLORS[i];
-        verts.push_back({phys_to_gl(pts[0]), normal, col});  // G
-        verts.push_back({phys_to_gl(pts[1]), normal, col});  // E  (lower link)
-        verts.push_back({phys_to_gl(pts[1]), normal, col});  // E
-        verts.push_back({phys_to_gl(pts[2]), normal, col});  // T  (upper link)
-    }
-    legs_mesh_->set_data(verts);
+    // Build a model matrix that places the unit cylinder (Y axis, -0.5 to +0.5, radius=1)
+    // with its two ends at A and B, with the given world-space cylinder radius.
+    auto make_cylinder_matrix = [](
+        const Eigen::Vector3f& A,
+        const Eigen::Vector3f& B,
+        float radius) -> Eigen::Matrix4f
+    {
+        const Eigen::Vector3f diff = B - A;
+        const float L = diff.norm();
+        if (L < 1e-6f) return Eigen::Matrix4f::Identity();
 
-    // Use grid shader which outputs uColor as a flat colour.
-    // Draw each arm (4 vertices = 2 line segments) with its own colour.
-    grid_shader_->use();
-    Eigen::Matrix4f identity = Eigen::Matrix4f::Identity();
-    grid_shader_->set_uniform("uModel",      identity);
-    grid_shader_->set_uniform("uView",       camera_.get_view_matrix());
-    float aspect = static_cast<float>(width_) / static_cast<float>(height_);
-    grid_shader_->set_uniform("uProjection", Camera::get_projection_matrix(aspect));
+        const Eigen::Vector3f d = diff / L;                  // unit direction
+        const Eigen::Vector3f canonical(0.0f, 1.0f, 0.0f);  // cylinder's canonical axis
 
-    legs_mesh_->bind();
-    for (int i = 0; i < 3; ++i) {
-        grid_shader_->set_uniform("uColor", ARM_COLORS[i]);
-        glDrawArrays(GL_LINES, i * 4, 4);   // 4 vertices per arm
+        const float c = canonical.dot(d);
+        const Eigen::Vector3f k = canonical.cross(d);        // sin-scaled rotation axis
+
+        Eigen::Matrix3f R;
+        if (c < -0.9999f) {
+            // d ≈ (0,-1,0): 180° rotation about X axis
+            R = Eigen::Matrix3f::Zero();
+            R(0, 0) =  1.0f;
+            R(1, 1) = -1.0f;
+            R(2, 2) = -1.0f;
+        } else {
+            // Rodrigues' formula: R = I + [k]× + [k]×² / (1 + c)
+            Eigen::Matrix3f K;
+            K <<    0.0f, -k.z(),  k.y(),
+                 k.z(),    0.0f, -k.x(),
+                -k.y(),  k.x(),    0.0f;
+            R = Eigen::Matrix3f::Identity() + K + K * K * (1.0f / (1.0f + c));
+        }
+
+        // Non-uniform scale: radius in X/Z, length L in Y (unit cylinder has radius=1)
+        Eigen::Matrix3f S = Eigen::Matrix3f::Zero();
+        S(0, 0) = radius;
+        S(1, 1) = L;
+        S(2, 2) = radius;
+
+        Eigen::Matrix4f M = Eigen::Matrix4f::Identity();
+        M.topLeftCorner<3, 3>() = R * S;
+        M.col(3).head<3>() = 0.5f * (A + B);   // midpoint translation
+        return M;
+    };
+
+    // Bind Phong shader (shared by table/ball — already supports uModel, uNormalMatrix, uColor, lighting)
+    basic_shader_->use();
+
+    const float aspect = static_cast<float>(width_) / static_cast<float>(height_);
+    const Eigen::Matrix4f view = camera_.get_view_matrix();
+    const Eigen::Matrix4f proj = Camera::get_projection_matrix(aspect);
+
+    // Set uniforms shared across all 9 draw calls
+    basic_shader_->set_uniform("uView",       view);
+    basic_shader_->set_uniform("uProjection", proj);
+    basic_shader_->set_uniform("uLightPos",   Eigen::Vector3f(2.0f, 3.0f, 2.0f));
+    basic_shader_->set_uniform("uLightColor", Eigen::Vector3f(1.0f, 1.0f, 1.0f));
+    basic_shader_->set_uniform("uAmbient",    0.3f);
+
+    // =========================================================================
+    // 6 cylinders: 3 arms × 2 links (G→E lower, E→T upper)
+    // =========================================================================
+    cylinder_mesh_->bind();
+
+    for (int arm = 0; arm < 3; ++arm) {
+        const auto& pts = arm_points[arm];   // pts[0]=G, pts[1]=E, pts[2]=T
+
+        const Eigen::Vector3f G = phys_to_gl(pts[0]);
+        const Eigen::Vector3f E = phys_to_gl(pts[1]);
+        const Eigen::Vector3f T = phys_to_gl(pts[2]);
+
+        const Eigen::Vector3f base_col = ARM_COLORS[arm];
+        const Eigen::Vector3f dark_col = base_col * LOWER_SHADE;
+
+        // Lower link G → E (darker)
+        {
+            const Eigen::Matrix4f model = make_cylinder_matrix(G, E, CYLINDER_RADIUS);
+            // Non-uniform scale requires full inverse-transpose for correct normals.
+            const Eigen::Matrix3f normal_mat =
+                model.topLeftCorner<3, 3>().inverse().transpose();
+            basic_shader_->set_uniform("uModel",        model);
+            basic_shader_->set_uniform("uNormalMatrix", normal_mat);
+            basic_shader_->set_uniform("uColor",        dark_col);
+            glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(cylinder_mesh_->get_vertex_count()));
+        }
+
+        // Upper link E → T (full colour)
+        {
+            const Eigen::Matrix4f model = make_cylinder_matrix(E, T, CYLINDER_RADIUS);
+            const Eigen::Matrix3f normal_mat =
+                model.topLeftCorner<3, 3>().inverse().transpose();
+            basic_shader_->set_uniform("uModel",        model);
+            basic_shader_->set_uniform("uNormalMatrix", normal_mat);
+            basic_shader_->set_uniform("uColor",        base_col);
+            glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(cylinder_mesh_->get_vertex_count()));
+        }
     }
-    legs_mesh_->unbind();
+
+    cylinder_mesh_->unbind();
+
+    // =========================================================================
+    // 3 joint spheres at elbow points (E)
+    // =========================================================================
+    joint_sphere_mesh_->bind();
+
+    for (int arm = 0; arm < 3; ++arm) {
+        const Eigen::Vector3f E = phys_to_gl(arm_points[arm][1]);
+
+        Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+        model.col(3).head<3>() = E;
+
+        // Pure translation — normal matrix is identity
+        const Eigen::Matrix3f normal_mat_sphere = Eigen::Matrix3f::Identity();
+        basic_shader_->set_uniform("uModel",        model);
+        basic_shader_->set_uniform("uNormalMatrix", normal_mat_sphere);
+        basic_shader_->set_uniform("uColor",        ARM_COLORS[arm]);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(joint_sphere_mesh_->get_vertex_count()));
+    }
+
+    joint_sphere_mesh_->unbind();
 }
 
 void Renderer::resize(int width, int height) {
     width_ = width;
     height_ = height;
     glViewport(0, 0, width_, height_);
+}
+
+void Renderer::set_table_radius(float radius) {
+    params_.table_radius = static_cast<double>(radius);
+    table_mesh_->set_data(create_disc(radius, 64));
 }
 
 // ============================================================================
@@ -542,25 +647,29 @@ std::vector<Vertex> Renderer::create_sphere(float radius, int segments) {
     return triangle_vertices;
 }
 
-std::vector<Vertex> Renderer::create_plane(float width, float height) {
+std::vector<Vertex> Renderer::create_disc(float radius, int segments) {
     std::vector<Vertex> vertices;
+    vertices.reserve(static_cast<size_t>(segments) * 3);
 
-    const Eigen::Vector3f color(0.6f, 0.7f, 0.8f);  // Light blue for table
-    const Eigen::Vector3f normal(0.0f, 1.0f, 0.0f);  // Up
+    const Eigen::Vector3f color(0.6f, 0.7f, 0.8f);   // Light blue for table
+    const Eigen::Vector3f normal(0.0f, 1.0f, 0.0f);   // Up (+Y in GL space)
+    const Eigen::Vector3f center(0.0f, 0.0f, 0.0f);
+    const float pi = static_cast<float>(M_PI);
 
-    float hw = width / 2.0f;
-    float hh = height / 2.0f;
+    // Fan of triangles: center + two rim points per segment
+    for (int i = 0; i < segments; ++i) {
+        const float phi0 = static_cast<float>(i)     * 2.0f * pi / static_cast<float>(segments);
+        const float phi1 = static_cast<float>(i + 1) * 2.0f * pi / static_cast<float>(segments);
 
-    // Two triangles forming a quad
-    // Triangle 1
-    vertices.push_back({Eigen::Vector3f(-hw, 0.0f, -hh), normal, color});
-    vertices.push_back({Eigen::Vector3f( hw, 0.0f, -hh), normal, color});
-    vertices.push_back({Eigen::Vector3f( hw, 0.0f,  hh), normal, color});
+        // GL coord: disc lies in the XZ plane (Y=0), physics X→GL X, physics Y→GL Z
+        const Eigen::Vector3f v0(radius * std::cos(phi0), 0.0f, radius * std::sin(phi0));
+        const Eigen::Vector3f v1(radius * std::cos(phi1), 0.0f, radius * std::sin(phi1));
 
-    // Triangle 2
-    vertices.push_back({Eigen::Vector3f(-hw, 0.0f, -hh), normal, color});
-    vertices.push_back({Eigen::Vector3f( hw, 0.0f,  hh), normal, color});
-    vertices.push_back({Eigen::Vector3f(-hw, 0.0f,  hh), normal, color});
+        // CCW winding when viewed from above (+Y) → front face
+        vertices.push_back({center, normal, color});
+        vertices.push_back({v0,     normal, color});
+        vertices.push_back({v1,     normal, color});
+    }
 
     return vertices;
 }
@@ -609,6 +718,82 @@ std::vector<Vertex> Renderer::create_axes(float length) {
     vertices.push_back({Eigen::Vector3f(0.0f, 0.0f, length), normal, Eigen::Vector3f(0.0f, 0.0f, 1.0f)});
 
     return vertices;
+}
+
+std::vector<Vertex> Renderer::create_cylinder(int segments) {
+    std::vector<Vertex> verts;
+    verts.reserve(static_cast<size_t>(segments) * 12);
+
+    const float pi = static_cast<float>(M_PI);
+    // Neutral white — actual colour is applied per draw call via uColor uniform
+    const Eigen::Vector3f white(1.0f, 1.0f, 1.0f);
+
+    // -------------------------------------------------------------------------
+    // Side surface: segments quads (each quad = 2 triangles)
+    // Cylinder axis = Y, radius = 1, Y in [-0.5, +0.5]
+    // -------------------------------------------------------------------------
+    for (int i = 0; i < segments; ++i) {
+        const float phi0 = static_cast<float>(i)     * 2.0f * pi / static_cast<float>(segments);
+        const float phi1 = static_cast<float>(i + 1) * 2.0f * pi / static_cast<float>(segments);
+
+        const float c0 = std::cos(phi0), s0 = std::sin(phi0);
+        const float c1 = std::cos(phi1), s1 = std::sin(phi1);
+
+        const Eigen::Vector3f b0(c0, -0.5f, s0);   // bottom-left
+        const Eigen::Vector3f b1(c1, -0.5f, s1);   // bottom-right
+        const Eigen::Vector3f t0(c0,  0.5f, s0);   // top-left
+        const Eigen::Vector3f t1(c1,  0.5f, s1);   // top-right
+
+        const Eigen::Vector3f n0(c0, 0.0f, s0);    // outward lateral normals
+        const Eigen::Vector3f n1(c1, 0.0f, s1);
+
+        verts.push_back({b0, n0, white});
+        verts.push_back({b1, n1, white});
+        verts.push_back({t0, n0, white});
+
+        verts.push_back({t0, n0, white});
+        verts.push_back({b1, n1, white});
+        verts.push_back({t1, n1, white});
+    }
+
+    // -------------------------------------------------------------------------
+    // Bottom cap (Y = -0.5, normal = -Y)
+    // -------------------------------------------------------------------------
+    const Eigen::Vector3f n_bot(0.0f, -1.0f, 0.0f);
+    const Eigen::Vector3f n_top(0.0f,  1.0f, 0.0f);
+    const Eigen::Vector3f center_bot(0.0f, -0.5f, 0.0f);
+    const Eigen::Vector3f center_top(0.0f,  0.5f, 0.0f);
+
+    for (int i = 0; i < segments; ++i) {
+        const float phi0 = static_cast<float>(i)     * 2.0f * pi / static_cast<float>(segments);
+        const float phi1 = static_cast<float>(i + 1) * 2.0f * pi / static_cast<float>(segments);
+
+        const Eigen::Vector3f v0(std::cos(phi0), -0.5f, std::sin(phi0));
+        const Eigen::Vector3f v1(std::cos(phi1), -0.5f, std::sin(phi1));
+
+        // CW when viewed from below → correct CCW winding for outward -Y normal
+        verts.push_back({center_bot, n_bot, white});
+        verts.push_back({v1,         n_bot, white});
+        verts.push_back({v0,         n_bot, white});
+    }
+
+    // -------------------------------------------------------------------------
+    // Top cap (Y = +0.5, normal = +Y)
+    // -------------------------------------------------------------------------
+    for (int i = 0; i < segments; ++i) {
+        const float phi0 = static_cast<float>(i)     * 2.0f * pi / static_cast<float>(segments);
+        const float phi1 = static_cast<float>(i + 1) * 2.0f * pi / static_cast<float>(segments);
+
+        const Eigen::Vector3f v0(std::cos(phi0), 0.5f, std::sin(phi0));
+        const Eigen::Vector3f v1(std::cos(phi1), 0.5f, std::sin(phi1));
+
+        // CCW when viewed from above → correct winding for outward +Y normal
+        verts.push_back({center_top, n_top, white});
+        verts.push_back({v0,         n_top, white});
+        verts.push_back({v1,         n_top, white});
+    }
+
+    return verts;
 }
 
 } // namespace ball_balancer

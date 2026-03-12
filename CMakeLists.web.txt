@@ -107,6 +107,22 @@ target_include_directories(implot PUBLIC
 )
 target_link_libraries(implot PUBLIC imgui)
 
+# ImPlot3D - Build for Emscripten
+set(IMPLOT3D_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/implot3d)
+set(IMPLOT3D_SOURCES
+    ${IMPLOT3D_DIR}/implot3d.cpp
+    ${IMPLOT3D_DIR}/implot3d_items.cpp
+    ${IMPLOT3D_DIR}/implot3d_meshes.cpp
+)
+
+add_library(implot3d STATIC ${IMPLOT3D_SOURCES})
+target_include_directories(implot3d PUBLIC
+    ${IMPLOT3D_DIR}
+    ${IMGUI_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/external
+)
+target_link_libraries(implot3d PUBLIC imgui)
+
 # GLAD - OpenGL loader (for WebGL we use Emscripten's GL headers)
 # Create a dummy glad library or exclude it for web builds
 add_library(glad INTERFACE)
@@ -120,6 +136,7 @@ set(BALL_BALANCER_SOURCES
     src/core/application.cpp
 
     # Physics
+    src/physics/ball_dynamics.cpp
     src/physics/simulator.cpp
 
     # Control
@@ -142,8 +159,8 @@ set(BALL_BALANCER_SOURCES
     src/visualization/real_time_plotter.cpp
     src/visualization/data_manager.cpp
 
-    # Main entry point (will be modified for web)
-    src/main.cpp
+    # Web entry point (uses emscripten_set_main_loop)
+    src/main_web.cpp
 )
 
 # ============================================================================
@@ -163,6 +180,7 @@ target_include_directories(ball_balancer PRIVATE
 target_link_libraries(ball_balancer PRIVATE
     imgui
     implot
+    implot3d
     glad
 )
 
