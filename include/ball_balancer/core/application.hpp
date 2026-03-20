@@ -150,7 +150,6 @@ private:
     double current_time_{0.0};
     double simulation_time_{0.0};
     double accumulator_{0.0};
-    StateVector current_state_;
     ControlVector current_control_;
     MeasurementVector current_measurement_;
 
@@ -174,11 +173,17 @@ private:
     /// Commanded servo angles α_cmd_i. Set by IK (Pose mode) or GUI (Servo mode).
     ServoAngles servo_cmd_{};
 
+    /// Current upper-link elbow angles β_i (rad). Updated by FK every frame.
+    ElbowAngles elbow_angles_{};
+
     /// Active kinematics mode (Pose = IK, Servo = FK).
-    KinematicsMode kinematics_mode_{KinematicsMode::Pose};
+    KinematicsMode kinematics_mode_{KinematicsMode::Servo};
 
     /// True when the last IK call returned nullopt (pose out of reach).
     bool ik_failed_{false};
+
+    /// FK method used in Servo mode (selectable from GUI).
+    FKMethod fk_method_{FKMethod::NewtonRaphson};
 };
 
 } // namespace ball_balancer

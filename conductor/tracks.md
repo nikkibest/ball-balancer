@@ -7,4 +7,6 @@
 | [~] | ball-dynamics_20260228 | Full Ball Dynamics Implementation | 2026-02-28 | 2026-02-28 |
 | [x] | table-legs-render_20260310 | Table Legs Rendering & Kinematics Integration | 2026-03-10 | 2026-03-10 |
 
+| [x] | state-split_20260320 | Split StateVector into BallState and TableState | 2026-03-20 | 2026-03-20 |
+
 <!-- Tracks registered by /conductor:new-track -->

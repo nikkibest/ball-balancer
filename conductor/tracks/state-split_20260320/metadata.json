@@ -1,0 +1,16 @@
+{
+  "id": "state-split_20260320",
+  "title": "Split StateVector into BallState and TableState",
+  "type": "refactor",
+  "status": "complete",
+  "created": "2026-03-20T00:00:00Z",
+  "updated": "2026-03-20T12:00:00Z",
+  "phases": {
+    "total": 6,
+    "completed": 6
+  },
+  "tasks": {
+    "total": 29,
+    "completed": 29
+  }
+}

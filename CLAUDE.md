@@ -62,23 +62,26 @@ Camera (noisy position) → Kalman Filter → PID Controller → Physics Simulat
 ```
 
 ### Core Types (`include/ball_balancer/core/types.hpp`)
-- `StateVector` (9D): `[x, y, z_ball, vx, vy, vz_ball, theta_x, theta_y, z_table]`
-- `ControlVector` (2D): `[theta_x_cmd, theta_y_cmd]`
+- `BallState`: `{x, y, z_ball, vx, vy, vz_ball, ax, ay, az_ball}` — primary ball state
+- `TableState`: `{phi, theta, z_t, phi_dot, theta_dot, z_t_dot, phi_ddot, theta_ddot, z_t_ddot}` — primary table state
+- `ControlVector` (3D): `[varphi_x_cmd, theta_y_cmd, table_z_cmd]`
 - `MeasurementVector` (2D): `[x_meas, y_meas]`
-- Named index access via `state_index::X`, `state_index::VX`, etc.
+- `StateVector` (9D Eigen): Kalman-internal only. Named index access via `state_index::X`, etc.
+- Conversion helpers: `toStateVector(ball, table)`, `toBallState(sv)`, `toTableState(sv)`
 
-#### State indices
-| Index | Constant | Meaning |
-|-------|----------|---------|
-| 0 | `X` | Ball X position (m) |
-| 1 | `Y` | Ball Y position (m) |
-| 2 | `Z_BALL` | Ball Z position (m) |
-| 3 | `VX` | Ball X velocity (m/s) |
-| 4 | `VY` | Ball Y velocity (m/s) |
-| 5 | `VZ_BALL` | Ball Z velocity (m/s) |
-| 6 | `THETA_X` | Table tilt around X axis (rad) |
-| 7 | `THETA_Y` | Table tilt around Y axis (rad) |
-| 8 | `Z_TABLE` | Table Z position (m) |
+#### BallState fields
+| Field | Meaning |
+|-------|---------|
+| `x`, `y`, `z_ball` | Ball position (m) |
+| `vx`, `vy`, `vz_ball` | Ball velocity (m/s) |
+| `ax`, `ay`, `az_ball` | Ball acceleration (m/s²) — populated by dynamics |
+
+#### TableState fields
+| Field | Meaning |
+|-------|---------|
+| `phi`, `theta`, `z_t` | Table tilt X (rad), tilt Y (rad), height (m) |
+| `phi_dot`, `theta_dot`, `z_t_dot` | Table rates |
+| `phi_ddot`, `theta_ddot`, `z_t_ddot` | Table accelerations |
 
 ### Physics Model (`src/physics/simulator.cpp`)
 - Rolling sphere on inclined plane: `a = (5/7)*g*sin(θ) - friction`
@@ -103,6 +106,47 @@ Camera (noisy position) → Kalman Filter → PID Controller → Physics Simulat
 2. `estimator_.predict(control)` + `estimator_.update(measurement)` — Kalman
 3. `controller_.compute(setpoint, estimated_state)` — PID → new control
 4. Render at 60 FPS (fixed-timestep accumulator separates physics from render)
+
+### Kinematics State-Flow (mode-dependent — CRITICAL)
+
+The simulation has two kinematics modes with **different primary inputs** and different
+causal ordering. When modifying any physics/kinematics code, always trace which state
+is the cause and which is the effect.
+
+**Pose mode** (`KinematicsMode::Pose`) — table pose is the primary input:
+```
+current_control_ (phi_cmd, theta_cmd, z_cmd)
+    │ RK4 servo lag: dθ/dt = (cmd − θ) / tau
+    ▼
+table pose states (VARPHI_X, THETA_Y, Z_TABLE)   ← truth
+    │ BallDynamics (gravity on tilted surface)
+    ▼
+ball states (X, Y, Z_BALL, VX, VY, VZ_BALL)
+    │ IK (direct closed-form, no lag)
+    ▼
+servo_angles_ (derived, read-only display)
+```
+GUI: table command sliders active; servo angle sliders read-only.
+
+**Servo mode** (`KinematicsMode::Servo`) — servo angles are the primary input:
+```
+servo_cmd_ (alpha_0_cmd, alpha_1_cmd, alpha_2_cmd)
+    │ first-order lag: dα/dt = (cmd − α) / tau    [inside physics sub-step loop]
+    ▼
+servo_angles_   ← truth
+    │ FK (Newton-Raphson or YouTube closed-form, user-selectable)
+    ▼
+table pose states (VARPHI_X, THETA_Y, Z_TABLE)   [injected into simulator before ball step]
+    │ BallDynamics (RK4)
+    ▼
+ball states (X, Y, Z_BALL, VX, VY, VZ_BALL)
+```
+GUI: servo angle sliders active; table pose and ball state sliders read-only when running.
+
+**Key implementation rule**: In Servo mode the simulator's internal servo dynamics
+must see zero error (pass `physics_control` = current FK table pose as command) so
+RK4 does not try to integrate the table angles — they are frozen to the FK value.
+After each sub-step, snap the table state back to the FK result to prevent drift.
 
 ### Key System Parameters
 ```
