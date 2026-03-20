@@ -31,23 +31,23 @@ TEST(StateEstimatorAxisMismatch, VXDrivenByThetaXNotThetaY) {
     StateEstimator estimator(params);
 
     // Initialize with only X-axis tilt (no Y-axis tilt)
-    StateVector init = StateVector::Zero();
-    init(state_index::VARPHI_X) = 0.1;  // 0.1 rad tilt in X
-    init(state_index::THETA_Y) = 0.0;  // No tilt in Y
+    TableState table{};
+    table.phi   = 0.1;  // 0.1 rad tilt in X
+    table.theta = 0.0;  // No tilt in Y
 
-    estimator.reset(init);
+    estimator.reset(BallState{}, table);
 
     // Run prediction step (no control input)
     estimator.predict(ControlVector::Zero());
 
-    const StateVector& x_hat = estimator.get_state();
+    const BallState ball = estimator.get_ball_state();
 
     // With positive varphi_x, ball should roll in +X direction (VX increases)
-    EXPECT_GT(x_hat(state_index::VX), 0.0)
+    EXPECT_GT(ball.vx, 0.0)
         << "BUG: VX must increase when varphi_x > 0 (axis mismatch if this fails)";
 
     // With zero theta_y, VY should remain near zero
-    EXPECT_NEAR(x_hat(state_index::VY), 0.0, 1e-9)
+    EXPECT_NEAR(ball.vy, 0.0, 1e-9)
         << "VY must remain zero when theta_y == 0";
 }
 
@@ -61,19 +61,19 @@ TEST(StateEstimatorAxisMismatch, VYDrivenByThetaYNotThetaX) {
     StateEstimator estimator(params);
 
     // Initialize with only Y-axis tilt
-    StateVector init = StateVector::Zero();
-    init(state_index::VARPHI_X) = 0.0;
-    init(state_index::THETA_Y) = 0.1;  // 0.1 rad tilt in Y
+    TableState table{};
+    table.phi   = 0.0;
+    table.theta = 0.1;  // 0.1 rad tilt in Y
 
-    estimator.reset(init);
+    estimator.reset(BallState{}, table);
     estimator.predict(ControlVector::Zero());
 
-    const StateVector& x_hat = estimator.get_state();
+    const BallState ball = estimator.get_ball_state();
 
-    EXPECT_GT(x_hat(state_index::VY), 0.0)
+    EXPECT_GT(ball.vy, 0.0)
         << "VY must increase when theta_y > 0";
 
-    EXPECT_NEAR(x_hat(state_index::VX), 0.0, 1e-9)
+    EXPECT_NEAR(ball.vx, 0.0, 1e-9)
         << "VX must remain zero when varphi_x == 0";
 }
 
@@ -165,10 +165,17 @@ TEST(StateEstimator, InitializationFromParameters) {
     StateEstimator estimator(params);
 
     // Initial state should be zero
-    const StateVector& x_hat = estimator.get_state();
-    for (int i = 0; i < 6; ++i) {
-        EXPECT_DOUBLE_EQ(x_hat(i), 0.0) << "Initial state element " << i << " should be zero";
-    }
+    const BallState  ball  = estimator.get_ball_state();
+    const TableState table = estimator.get_table_state();
+    EXPECT_DOUBLE_EQ(ball.x,      0.0);
+    EXPECT_DOUBLE_EQ(ball.y,      0.0);
+    EXPECT_DOUBLE_EQ(ball.z_ball, 0.0);
+    EXPECT_DOUBLE_EQ(ball.vx,     0.0);
+    EXPECT_DOUBLE_EQ(ball.vy,     0.0);
+    EXPECT_DOUBLE_EQ(ball.vz_ball,0.0);
+    EXPECT_DOUBLE_EQ(table.phi,   0.0);
+    EXPECT_DOUBLE_EQ(table.theta, 0.0);
+    EXPECT_DOUBLE_EQ(table.z_t,   0.0);
 }
 
 TEST(StateEstimator, ResetSetsState) {
@@ -177,16 +184,33 @@ TEST(StateEstimator, ResetSetsState) {
 
     StateEstimator estimator(params);
 
-    StateVector new_state;
-    new_state << 0.1, 0.2, 0.3, 0.4, 0.05, 0.06;
+    BallState  new_ball{};
+    new_ball.x      = 0.1;
+    new_ball.y      = 0.2;
+    new_ball.z_ball = 0.3;
+    new_ball.vx     = 0.4;
+    new_ball.vy     = 0.05;
+    new_ball.vz_ball= 0.06;
 
-    estimator.reset(new_state);
+    TableState new_table{};
+    new_table.phi   = 0.01;
+    new_table.theta = 0.02;
+    new_table.z_t   = 0.03;
 
-    const StateVector& x_hat = estimator.get_state();
-    for (int i = 0; i < 6; ++i) {
-        EXPECT_DOUBLE_EQ(x_hat(i), new_state(i))
-            << "State element " << i << " should match reset value";
-    }
+    estimator.reset(new_ball, new_table);
+
+    const BallState  ball  = estimator.get_ball_state();
+    const TableState table = estimator.get_table_state();
+
+    EXPECT_DOUBLE_EQ(ball.x,       new_ball.x);
+    EXPECT_DOUBLE_EQ(ball.y,       new_ball.y);
+    EXPECT_DOUBLE_EQ(ball.z_ball,  new_ball.z_ball);
+    EXPECT_DOUBLE_EQ(ball.vx,      new_ball.vx);
+    EXPECT_DOUBLE_EQ(ball.vy,      new_ball.vy);
+    EXPECT_DOUBLE_EQ(ball.vz_ball, new_ball.vz_ball);
+    EXPECT_DOUBLE_EQ(table.phi,    new_table.phi);
+    EXPECT_DOUBLE_EQ(table.theta,  new_table.theta);
+    EXPECT_DOUBLE_EQ(table.z_t,    new_table.z_t);
 }
 
 /**
@@ -199,19 +223,17 @@ TEST(StateEstimator, PredictionAdvancesState) {
     StateEstimator estimator(params);
 
     // Set initial state with non-zero velocity
-    StateVector init;
-    init << 0.0, 0.0, 0.1, 0.0, 0.0, 0.0;  // vx = 0.1 m/s
-    estimator.reset(init);
+    BallState init{};
+    init.vx = 0.1;  // vx = 0.1 m/s
+    estimator.reset(init, TableState{});
 
     // Run prediction
-    ControlVector control = ControlVector::Zero();
-    estimator.predict(control);
+    estimator.predict(ControlVector::Zero());
 
-    const StateVector& x_hat = estimator.get_state();
+    const BallState ball = estimator.get_ball_state();
 
     // Position X should have changed due to velocity integration
-    // (exact value depends on dynamics, just verify state changed)
-    EXPECT_NE(x_hat(state_index::X), 0.0) << "Position should change after prediction";
+    EXPECT_NE(ball.x, 0.0) << "Position should change after prediction";
 }
 
 /**
@@ -225,9 +247,10 @@ TEST(StateEstimator, UpdateIncorporatesMeasurement) {
     StateEstimator estimator(params);
 
     // Set initial state with error
-    StateVector init;
-    init << 0.1, 0.2, 0.0, 0.0, 0.0, 0.0;
-    estimator.reset(init);
+    BallState init{};
+    init.x = 0.1;
+    init.y = 0.2;
+    estimator.reset(init, TableState{});
 
     // Provide measurement at origin
     MeasurementVector measurement;
@@ -235,13 +258,11 @@ TEST(StateEstimator, UpdateIncorporatesMeasurement) {
 
     estimator.update(measurement);
 
-    const StateVector& x_hat = estimator.get_state();
+    const BallState ball = estimator.get_ball_state();
 
     // State estimate should move closer to measurement
-    EXPECT_LT(std::abs(x_hat(state_index::X)), 0.1)
-        << "X estimate should move toward measurement";
-    EXPECT_LT(std::abs(x_hat(state_index::Y)), 0.2)
-        << "Y estimate should move toward measurement";
+    EXPECT_LT(std::abs(ball.x), 0.1) << "X estimate should move toward measurement";
+    EXPECT_LT(std::abs(ball.y), 0.2) << "Y estimate should move toward measurement";
 }
 
 // ============================================================================
@@ -276,13 +297,13 @@ TEST(PIDController, IndependentAxisControl) {
 
     ControlVector control = controller.compute(setpoint, state);
 
-    // X control should be non-zero (proportional to error)
-    EXPECT_NE(control(control_index::VARPHI_X_CMD), 0.0)
-        << "X controller should produce output for X error";
+    // X position error → THETA_Y_CMD (pid_x_ controls theta_y)
+    EXPECT_NE(control(control_index::THETA_Y_CMD), 0.0)
+        << "X controller (pid_x_) should produce THETA_Y_CMD output for X error";
 
-    // Y control should be zero (zero gains)
-    EXPECT_DOUBLE_EQ(control(control_index::THETA_Y_CMD), 0.0)
-        << "Y controller should produce zero output with zero gains";
+    // Y control (pid_y_ → VARPHI_X_CMD) should be zero (zero gains)
+    EXPECT_DOUBLE_EQ(control(control_index::VARPHI_X_CMD), 0.0)
+        << "Y controller should produce zero VARPHI_X_CMD with zero gains";
 }
 
 TEST(PIDController, ResetBothAxes) {

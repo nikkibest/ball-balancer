@@ -72,21 +72,35 @@ public:
 
     /**
      * @brief Reset simulation to initial state
-     * @param initial_state Initial state vector
+     * @param ball  Initial ball state
+     * @param table Initial table state
      */
-    void reset(const StateVector& initial_state);
+    void reset(const BallState& ball, const TableState& table);
 
     /**
-     * @brief Get current true state (no noise)
-     * @return Current state vector
+     * @brief Get current ball state (no noise)
      */
-    const StateVector& get_state() const { return state_; }
+    const BallState& get_ball_state() const { return ball_state_; }
 
     /**
-     * @brief Set simulation state directly (e.g., from GUI sliders when paused)
-     * @param state New state vector to apply immediately
+     * @brief Get current table state (no noise)
      */
-    void set_state(const StateVector& state) { state_ = state; }
+    const TableState& get_table_state() const { return table_state_; }
+
+    /**
+     * @brief Set ball state directly (e.g., from GUI sliders when paused)
+     */
+    void set_ball_state(const BallState& ball) { ball_state_ = ball; }
+
+    /**
+     * @brief Set table state directly (e.g., from GUI sliders or FK injection)
+     */
+    void set_table_state(const TableState& table) {
+        table_state_.phi   = table.phi;
+        table_state_.theta = table.theta;
+        table_state_.z_t   = table.z_t;
+        // rates/accelerations are recomputed each step — do not overwrite them here
+    }
 
     /**
      * @brief Update the table radius used for boundary clamping.
@@ -125,28 +139,26 @@ public:
      * @return true if ball centre is at or below the table surface + radius
      */
     bool isInContact() const {
-        return ball_dynamics_.isInContact(state_, buildTableState(state_));
+        return ball_dynamics_.isInContact(ball_state_, table_state_);
     }
 
 private:
     /**
-     * @brief ODE system: dx/dt = f(x, u, t)
-     * @param state Current state
-     * @param dstate Output: state derivative
-     * @param t Current time
+     * @brief ODE for ball states: computes (dx, dy, dz_ball, dvx, dvy, dvz_ball).
      *
-     * Delegates ball acceleration to BallDynamics; servo dynamics remain here.
+     * @param ball   Current ball state
+     * @param table  Current table state (read-only)
+     * @param d_ball Output: ball state derivatives
      */
-    void dynamics(const StateVector& state, StateDerivative& dstate, double t);
+    void ball_dynamics_step(const BallState& ball, const TableState& table, BallState& d_ball);
 
     /**
-     * @brief Build a TableState snapshot from the current state vector.
+     * @brief Update table_state_ rates from current_control_ (first-order servo lag).
      *
-     * Angular rates are derived from servo dynamics (first-order response).
-     * Angular accelerations are set to zero (conservative approximation).
-     * Table Z velocity and acceleration are zero (table Z is a stub).
+     * Computes phi_dot, theta_dot, z_t_dot from (cmd - current) / tau.
+     * Sets accelerations to zero (conservative approximation).
      */
-    TableState buildTableState(const StateVector& state) const;
+    void update_table_rates();
 
     /**
      * @brief Enforce contact constraint and table boundary conditions.
@@ -164,11 +176,12 @@ private:
     // Ball dynamics engine (encapsulates full 3D EOM)
     BallDynamics ball_dynamics_;
 
-    // Current state
-    StateVector state_;
+    // Primary state
+    BallState  ball_state_;
+    TableState table_state_;
     double time_;
 
-    // Current control input (stored for ODE function)
+    // Current control input (stored for rate computation)
     ControlVector current_control_;
 
     // Random number generation for measurement noise

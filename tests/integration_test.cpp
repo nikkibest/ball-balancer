@@ -45,27 +45,28 @@ TEST(Integration, FlatTableBallStaysOnSurface) {
     Simulator sim(p);
 
     // Ball starts resting on flat table at origin
-    StateVector s = StateVector::Zero();
-    s(state_index::Z_BALL)  = p.ball_radius;   // z_b = r (on surface, z_t=0)
-    s(state_index::Z_TABLE) = 0.0;
-    sim.reset(s);
+    BallState  ball{};
+    ball.z_ball = p.ball_radius;   // z_b = r (on surface, z_t=0)
+    TableState table{};
+    sim.reset(ball, table);
 
     const ControlVector zero_ctrl = ControlVector::Zero();
 
     // Run for 5 seconds
     runFor(sim, 5.0, zero_ctrl);
 
-    const StateVector& final = sim.get_state();
-    const double z_surface   = p.ball_radius;  // flat table, z_t=0
+    const BallState  final_ball  = sim.get_ball_state();
+    const TableState final_table = sim.get_table_state();
+    const double z_surface = final_table.z_t + p.ball_radius;
 
     // Ball must remain on surface (within 0.5 mm)
-    EXPECT_NEAR(final(state_index::Z_BALL), z_surface, 5e-4)
+    EXPECT_NEAR(final_ball.z_ball, z_surface, 5e-4)
         << "Ball should stay on surface on flat table with zero control";
 
     // Horizontal drift must be negligible (within 0.5 mm)
-    EXPECT_NEAR(final(state_index::X), 0.0, 5e-4)
+    EXPECT_NEAR(final_ball.x, 0.0, 5e-4)
         << "Ball should not drift horizontally on flat table";
-    EXPECT_NEAR(final(state_index::Y), 0.0, 5e-4)
+    EXPECT_NEAR(final_ball.y, 0.0, 5e-4)
         << "Ball should not drift horizontally on flat table";
 
     // Ball should be in contact
@@ -81,9 +82,9 @@ TEST(Integration, TiltDrivesBallInCorrectXDirection) {
     SystemParameters p = defaultParams();
     Simulator sim(p);
 
-    StateVector s = StateVector::Zero();
-    s(state_index::Z_BALL) = p.ball_radius;
-    sim.reset(s);
+    BallState ball{};
+    ball.z_ball = p.ball_radius;
+    sim.reset(ball, TableState{});
 
     // Positive THETA_Y_CMD (pitch) should drive ball in -X direction
     ControlVector ctrl = ControlVector::Zero();
@@ -91,12 +92,12 @@ TEST(Integration, TiltDrivesBallInCorrectXDirection) {
 
     runFor(sim, 1.0, ctrl);
 
-    const StateVector& final = sim.get_state();
-    EXPECT_LT(final(state_index::X), -0.01)
+    const BallState final_ball = sim.get_ball_state();
+    EXPECT_LT(final_ball.x, -0.01)
         << "Positive THETA_Y should drive ball in -X direction";
 
     // Y should remain near zero (pure pitch, no roll)
-    EXPECT_NEAR(final(state_index::Y), 0.0, 0.02)
+    EXPECT_NEAR(final_ball.y, 0.0, 0.02)
         << "Pure pitch should not drive ball in Y direction";
 }
 
@@ -104,9 +105,9 @@ TEST(Integration, TiltDrivesBallInCorrectYDirection) {
     SystemParameters p = defaultParams();
     Simulator sim(p);
 
-    StateVector s = StateVector::Zero();
-    s(state_index::Z_BALL) = p.ball_radius;
-    sim.reset(s);
+    BallState ball{};
+    ball.z_ball = p.ball_radius;
+    sim.reset(ball, TableState{});
 
     // Positive VARPHI_X_CMD (roll / phi) should drive ball in +Y direction
     ControlVector ctrl = ControlVector::Zero();
@@ -114,11 +115,11 @@ TEST(Integration, TiltDrivesBallInCorrectYDirection) {
 
     runFor(sim, 1.0, ctrl);
 
-    const StateVector& final = sim.get_state();
-    EXPECT_GT(final(state_index::Y), 0.01)
+    const BallState final_ball = sim.get_ball_state();
+    EXPECT_GT(final_ball.y, 0.01)
         << "Positive VARPHI_X should drive ball in +Y direction";
 
-    EXPECT_NEAR(final(state_index::X), 0.0, 0.02)
+    EXPECT_NEAR(final_ball.x, 0.0, 0.02)
         << "Pure roll should not drive ball in X direction";
 }
 
@@ -126,25 +127,24 @@ TEST(Integration, ZTracksTableSurfaceDuringTilt) {
     SystemParameters p = defaultParams();
     Simulator sim(p);
 
-    StateVector s = StateVector::Zero();
-    s(state_index::Z_BALL) = p.ball_radius;
-    sim.reset(s);
+    BallState ball{};
+    ball.z_ball = p.ball_radius;
+    sim.reset(ball, TableState{});
 
     ControlVector ctrl = ControlVector::Zero();
     ctrl(control_index::THETA_Y_CMD) = 0.05;
 
     runFor(sim, 1.0, ctrl);
 
-    const StateVector& final = sim.get_state();
-    const double x       = final(state_index::X);
-    const double theta_y = final(state_index::THETA_Y);
-    const double z_t     = final(state_index::Z_TABLE);
+    const BallState  final_ball  = sim.get_ball_state();
+    const TableState final_table = sim.get_table_state();
 
-    // Expected surface height at current (x, theta_y): z_surface = z_t + r + x*theta
-    const double z_surface_expected = z_t + p.ball_radius + x * theta_y;
+    // Expected surface height at current (x, theta): z_surface = z_t + r + x*theta
+    const double z_surface_expected = final_table.z_t + p.ball_radius
+                                      + final_ball.x * final_table.theta;
 
     // Ball should be within 2 mm of the tilted surface
-    EXPECT_NEAR(final(state_index::Z_BALL), z_surface_expected, 2e-3)
+    EXPECT_NEAR(final_ball.z_ball, z_surface_expected, 2e-3)
         << "Ball Z should track tilted table surface";
 }
 
@@ -157,10 +157,10 @@ TEST(Integration, BallDropsAndBouncesFromFreeFlightHeight) {
     Simulator sim(p);
 
     // Place ball 10 cm above the flat table surface (free flight)
-    StateVector s = StateVector::Zero();
-    s(state_index::Z_BALL)  = p.ball_radius + 0.10;  // 10 cm above surface
-    s(state_index::VZ_BALL) = 0.0;
-    sim.reset(s);
+    BallState ball{};
+    ball.z_ball  = p.ball_radius + 0.10;  // 10 cm above surface
+    ball.vz_ball = 0.0;
+    sim.reset(ball, TableState{});
 
     EXPECT_FALSE(sim.isInContact())
         << "Ball should start in free flight";
@@ -171,10 +171,10 @@ TEST(Integration, BallDropsAndBouncesFromFreeFlightHeight) {
     // Run 0.5 s to observe at least one bounce.
     runFor(sim, 0.5, zero_ctrl);
 
-    const StateVector& final = sim.get_state();
+    const BallState final_ball = sim.get_ball_state();
 
     // After bounce ball must be at or above the table surface (not sunk through)
-    EXPECT_GE(final(state_index::Z_BALL), p.ball_radius - 1e-4)
+    EXPECT_GE(final_ball.z_ball, p.ball_radius - 1e-4)
         << "Ball should be at or above table surface after bounce";
 }
 
@@ -184,16 +184,16 @@ TEST(Integration, InelasticBallSettlesOnSurface) {
     Simulator sim(p);
 
     // Drop ball from 5 cm
-    StateVector s = StateVector::Zero();
-    s(state_index::Z_BALL) = p.ball_radius + 0.05;
-    sim.reset(s);
+    BallState ball{};
+    ball.z_ball = p.ball_radius + 0.05;
+    sim.reset(ball, TableState{});
 
     runFor(sim, 1.0, ControlVector::Zero());
 
     // With zero bounce, ball should come to rest exactly on surface
     EXPECT_TRUE(sim.isInContact())
         << "Ball should be in contact after fully inelastic bounce";
-    EXPECT_NEAR(sim.get_state()(state_index::Z_BALL), p.ball_radius, 1e-4)
+    EXPECT_NEAR(sim.get_ball_state().z_ball, p.ball_radius, 1e-4)
         << "Ball should rest exactly on surface after inelastic bounce";
 }
 
@@ -206,26 +206,26 @@ TEST(Integration, ProportionalControlDrivesBallTowardSetpoint) {
     Simulator sim(p);
 
     // Ball starts at x=0.1 m, offset from centre
-    StateVector s = StateVector::Zero();
-    s(state_index::X)      = 0.10;
-    s(state_index::Z_BALL) = p.ball_radius;
-    sim.reset(s);
+    BallState ball{};
+    ball.x      = 0.10;
+    ball.z_ball = p.ball_radius;
+    sim.reset(ball, TableState{});
 
     const double Kp = 0.5;     // Simple proportional gain
     const double dt = 0.01;    // 100 Hz control loop
     const int    N  = 800;     // 8 seconds
 
     for (int i = 0; i < N; ++i) {
-        const StateVector& curr = sim.get_state();
+        const BallState curr = sim.get_ball_state();
 
         // P-control: THETA_Y_CMD controls X axis
         ControlVector ctrl = ControlVector::Zero();
-        ctrl(control_index::THETA_Y_CMD) = Kp * curr(state_index::X);
+        ctrl(control_index::THETA_Y_CMD) = Kp * curr.x;
 
         sim.step(dt, ctrl);
     }
 
-    const double x_final = std::abs(sim.get_state()(state_index::X));
+    const double x_final = std::abs(sim.get_ball_state().x);
     EXPECT_LT(x_final, 0.05)
         << "P-control should reduce position error by at least 50% (from 0.10 m)";
 }

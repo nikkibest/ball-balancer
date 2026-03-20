@@ -232,8 +232,8 @@ void StateEstimator::update(const MeasurementVector& measurement) {
     P_ = ((P_ + P_.transpose()) * 0.5).eval();
 }
 
-void StateEstimator::reset(const StateVector& initial_state) {
-    x_hat_ = initial_state;
+void StateEstimator::reset(const BallState& ball, const TableState& table) {
+    x_hat_ = toStateVector(ball, table);
     P_ = SystemMatrix::Identity() * 0.1;  // Reset covariance
 }
 

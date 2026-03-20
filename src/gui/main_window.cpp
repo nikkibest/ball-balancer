@@ -117,7 +117,8 @@ void MainWindow::end_frame() {
 }
 
 void MainWindow::render(
-    const StateVector& state,
+    const BallState& ball,
+    const TableState& table,
     PIDController& controller,
     StateEstimator& estimator,
     Renderer& renderer,
@@ -139,7 +140,7 @@ void MainWindow::render(
 
     // Render panels
     if (show_control_panel_) {
-        control_panel_->render(state, controller, estimator, in_contact, arm_status);
+        control_panel_->render(ball, table, controller, estimator, in_contact, arm_status);
     }
 
     // Plots panel rendered by RealTimePlotter
@@ -169,8 +170,7 @@ void MainWindow::render(
         ImDrawList* fg = ImGui::GetForegroundDrawList();
         fg->PushClipRect(clip_min, clip_max, true);
         char buf[64];
-        snprintf(buf, sizeof(buf), "Ball: (%.3f, %.3f)",
-                 state(state_index::X), state(state_index::Y));
+        snprintf(buf, sizeof(buf), "Ball: (%.3f, %.3f)", ball.x, ball.y);
         fg->AddText(ImVec2(clip_min.x + 10.0f, clip_min.y + 10.0f),
                     IM_COL32(255, 255, 255, 200), buf);
         fg->PopClipRect();
@@ -324,8 +324,9 @@ void MainWindow::render_dockspace() {
     ImGui::End();
 }
 
-void MainWindow::render_viewport(const StateVector& state, Renderer& renderer) {
-    (void)state;
+void MainWindow::render_viewport(const BallState& ball, const TableState& table, Renderer& renderer) {
+    (void)ball;
+    (void)table;
     (void)renderer;
     // Viewport overlays are now drawn directly in render() via the foreground
     // draw list to avoid disrupting PassthruCentralNode.  This function is

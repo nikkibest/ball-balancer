@@ -26,38 +26,6 @@
 namespace ball_balancer {
 
 // ============================================================================
-// TableState — interface between Simulator (table) and BallDynamics (ball)
-// ============================================================================
-
-/**
- * @brief Snapshot of table kinematics passed to BallDynamics each step.
- *
- * The Simulator builds this from the current state vector and servo dynamics
- * so that BallDynamics remains fully decoupled from Simulator internals.
- *
- * Fields:
- *   phi, theta, z_t         — configuration  (rad, rad, m)
- *   phi_dot, theta_dot, z_t_dot   — velocities     (rad/s, rad/s, m/s)
- *   phi_ddot, theta_ddot, z_t_ddot — accelerations  (rad/s², rad/s², m/s²)
- */
-struct TableState {
-    // Configuration
-    double phi{0.0};        ///< Roll angle about X-axis (rad) — THETA_X
-    double theta{0.0};      ///< Pitch angle about Y-axis (rad) — THETA_Y
-    double z_t{0.0};        ///< Table centre height (m) — Z_TABLE
-
-    // First derivatives
-    double phi_dot{0.0};    ///< Roll rate (rad/s)
-    double theta_dot{0.0};  ///< Pitch rate (rad/s)
-    double z_t_dot{0.0};    ///< Table vertical velocity (m/s)
-
-    // Second derivatives
-    double phi_ddot{0.0};   ///< Roll angular acceleration (rad/s²)
-    double theta_ddot{0.0}; ///< Pitch angular acceleration (rad/s²)
-    double z_t_ddot{0.0};   ///< Table vertical acceleration (m/s²)
-};
-
-// ============================================================================
 // BallDynamics
 // ============================================================================
 
@@ -70,8 +38,7 @@ struct TableState {
  *  - Compute ball accelerations for both contact and free-flight modes
  *  - Apply coefficient-of-restitution bounce when the ball re-contacts
  *
- * This class is stateless with respect to the simulation (all state lives in
- * the Simulator's StateVector). Methods are therefore `const`.
+ * This class is stateless with respect to the simulation. Methods are therefore `const`.
  *
  * Physics reference — small-angle contact equations:
  *
@@ -99,11 +66,11 @@ public:
      * Contact condition (small-angle):
      *   z_b <= z_t + r + x*theta - y*phi
      *
-     * @param state Current 9D state vector
-     * @param table Current table kinematics
+     * @param ball   Current ball state
+     * @param table  Current table kinematics
      * @return true if ball centre is at or below the table surface + radius
      */
-    bool isInContact(const StateVector& state, const TableState& table) const;
+    bool isInContact(const BallState& ball, const TableState& table) const;
 
     /**
      * @brief Compute the table normal force on the ball.
@@ -112,25 +79,26 @@ public:
      * (ẋ_b ≈ 0, ẏ_b ≈ 0) to avoid the implicit coupling between N and ẍ/ÿ.
      * Result is clamped to N ≥ 0 (table cannot pull the ball down).
      *
-     * @param state Current 9D state vector
-     * @param table Current table kinematics
+     * @param ball   Current ball state
+     * @param table  Current table kinematics
      * @return Normal force in Newtons (≥ 0)
      */
-    double computeNormalForce(const StateVector& state, const TableState& table) const;
+    double computeNormalForce(const BallState& ball, const TableState& table) const;
 
     /**
      * @brief Compute ball accelerations (ax, ay, az) in the inertial frame.
      *
      * Selects contact or free-flight dynamics based on isInContact() and N.
+     * TableState is a read-only input; only ball accelerations are output.
      *
-     * @param state  Current 9D state vector
-     * @param table  Current table kinematics
+     * @param ball   Current ball state
+     * @param table  Current table kinematics (read-only)
      * @param ax     Output: ball acceleration in X (m/s²)
      * @param ay     Output: ball acceleration in Y (m/s²)
      * @param az     Output: ball acceleration in Z (m/s²)
      */
     void computeAccelerations(
-        const StateVector& state,
+        const BallState& ball,
         const TableState& table,
         double& ax, double& ay, double& az
     ) const;
@@ -141,12 +109,13 @@ public:
      * Should be called after the ball has been detected to have penetrated the
      * table surface (z_b < z_surface + r) and is approaching it.
      *
-     * Only modifies state(VZ_BALL); x/y velocities are unchanged.
+     * Only modifies ball.vz_ball; x/y velocities are unchanged.
+     * TableState is a read-only input.
      *
-     * @param state  State vector to modify in place
-     * @param table  Current table kinematics
+     * @param ball   Ball state to modify in place
+     * @param table  Current table kinematics (read-only)
      */
-    void applyBounce(StateVector& state, const TableState& table) const;
+    void applyBounce(BallState& ball, const TableState& table) const;
 
 private:
     SystemParameters params_;

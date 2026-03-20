@@ -158,11 +158,10 @@ bool Application::initialize() {
     }
 
     // Reset simulation to initial state
-    StateVector initial_state = StateVector::Zero();
-    initial_state(state_index::Z_TABLE) = params_.arm_z_nominal;
-    initial_state(state_index::Z_BALL)  = params_.arm_z_nominal + params_.ball_radius;
-    simulator_->reset(initial_state);
-    estimator_->reset(initial_state);
+    BallState  initial_ball  = make_initial_ball_state(0.0, 0.0, params_.arm_z_nominal + params_.ball_radius);
+    TableState initial_table = make_initial_table_state(0.0, 0.0, params_.arm_z_nominal);
+    simulator_->reset(initial_ball, initial_table);
+    estimator_->reset(initial_ball, initial_table);
     controller_->reset();
     plotter_->clear();
 
@@ -323,54 +322,93 @@ void main_loop_iteration() {
     if (sim_state == SimulationState::Running &&
         app->prev_sim_state_ != SimulationState::Running)
     {
-        StateVector s = app->simulator_->get_state();
-        const double z_t      = s(state_index::Z_TABLE);
-        const double z_surface = z_t + app->params_.ball_radius;
-        s(state_index::Z_BALL)  = z_surface;
-        s(state_index::VZ_BALL) = 0.0;
-        app->simulator_->set_state(s);
-        app->estimator_->reset(s);
+        BallState  b = app->simulator_->get_ball_state();
+        const TableState& t = app->simulator_->get_table_state();
+        b.z_ball  = t.z_t + app->params_.ball_radius;
+        b.vz_ball = 0.0;
+        app->simulator_->set_ball_state(b);
+        app->estimator_->reset(b, t);
     }
     app->prev_sim_state_ = sim_state;
 
+    /* START SIMULATION */
     int steps_taken = 0;
-    while (app->accumulator_ >= physics_dt && steps_taken < MAX_PHYSICS_STEPS) {
-        if (sim_state == SimulationState::Running) {
+    if (sim_state == SimulationState::Running) {
+        while (app->accumulator_ >= physics_dt && steps_taken < MAX_PHYSICS_STEPS) {
             // Get current state
-            StateVector true_state = app->simulator_->get_state();
+            BallState  true_ball  = app->simulator_->get_ball_state();
+            TableState true_table = app->simulator_->get_table_state();
+
+            // ── Servo mode: pre-inject FK-derived table pose so ball dynamics
+            //    run against the correct (servo-driven) table state.
+            //    Also pre-integrate servo angles for this sub-step.
+            if (app->kinematics_mode_ == KinematicsMode::Servo) {
+                const double tau = app->params_.servo_time_constant;
+                for (int i = 0; i < 3; ++i) {
+                    app->servo_angles_.alpha[i] +=
+                        (app->servo_cmd_.alpha[i] - app->servo_angles_.alpha[i]) / tau * physics_dt;
+                }
+                auto fkResult = app->kinematics_.forwardKinematics(
+                    app->servo_angles_, app->elbow_angles_);
+                if (fkResult) {
+                    app->elbow_angles_ = fkResult->elbow;
+                    true_table.phi   = fkResult->phi;
+                    true_table.theta = fkResult->theta;
+                    true_table.z_t   = fkResult->z_t;
+                    app->simulator_->set_table_state(true_table);
+                    app->ik_failed_ = false;
+                } else {
+                    app->ik_failed_ = true;
+                }
+                // Re-read after injection
+                true_ball  = app->simulator_->get_ball_state();
+                true_table = app->simulator_->get_table_state();
+            }
 
             // Get noisy measurement (simulates camera)
             MeasurementVector measurement = app->simulator_->get_measurement();
 
             // State estimation (Kalman filter)
             app->estimator_->update(measurement);
-            StateVector estimated_state = app->estimator_->get_state();
+            BallState  estimated_ball  = app->estimator_->get_ball_state();
+            TableState estimated_table = app->estimator_->get_table_state();
 
             // Compute control with PID or manual (use hoisted GUI state)
             ControlVector control;
             if (ctrl_state == ControllerState::Running) {
-                control = app->controller_->compute(setpoint, estimated_state);
+                control = app->controller_->compute(setpoint, toStateVector(estimated_ball, estimated_table));
             } else {
                 control = manual_control;
             }
 
-            // Apply control to simulation
-            app->simulator_->step(physics_dt, control);
+            // In Servo mode: table pose comes from FK, not from control commands.
+            // Pass a control that matches the current FK table state so the
+            // simulator's servo dynamics produce zero change (table stays frozen).
+            ControlVector physics_control = control;
+            if (app->kinematics_mode_ == KinematicsMode::Servo) {
+                physics_control(control_index::VARPHI_X_CMD) = true_table.phi;
+                physics_control(control_index::THETA_Y_CMD)  = true_table.theta;
+                physics_control(control_index::TABLE_Z_CMD)  = true_table.z_t;
+            }
+
+            // Apply control to simulation (ball dynamics + table servo dynamics)
+            app->simulator_->step(physics_dt, physics_control);
 
             // Predict next state (Kalman prediction step)
             app->estimator_->predict(control);
 
             // Update plots (subsample to 60 Hz to avoid overwhelming ImPlot)
             if (++app->plot_counter_ >= 2) {  // Every 2 physics steps = 50 Hz
-                app->plotter_->update(app->simulation_time_, true_state, control, setpoint);
+                app->plotter_->update(app->simulation_time_, true_ball, true_table, control, setpoint);
                 app->plot_counter_ = 0;
             }
 
             app->simulation_time_ += physics_dt;
+            app->accumulator_ -= physics_dt;
+            steps_taken++;
         }
-
-        app->accumulator_ -= physics_dt;
-        steps_taken++;
+    } else { // Simulator not running
+        app->accumulator_ = 0.0;
     }
 
     // If we hit the limit, reset accumulator to avoid infinite catch-up
@@ -381,46 +419,61 @@ void main_loop_iteration() {
 
     // ====================================================================
     // Kinematics: IK / FK and servo angle integration
+    //
+    // State-flow depends on kinematics_mode_:
+    //
+    // Pose mode (table pose is the primary input):
+    //   1. Physics/RK4 integrates table states from current_control_ (servo lag)
+    //   2. Ball dynamics follow from table states
+    //   3. IK maps table pose → servo_angles_ directly (no lag — pose is truth)
+    //
+    // Servo mode (servo angles are the primary input):
+    //   1. servo_angles_ integrated toward servo_cmd_ with tau lag
+    //   2. FK(servo_angles_) → table pose injected into simulator state
+    //   3. Ball dynamics (RK4) run with the FK-derived table pose frozen
     // ====================================================================
     {
-        const StateVector sim_state_vec = app->simulator_->get_state();
-        const double phi   = sim_state_vec(state_index::VARPHI_X);
-        const double theta = sim_state_vec(state_index::THETA_Y);
-        const double z_t   = sim_state_vec(state_index::Z_TABLE);
+        const TableState cur_table = app->simulator_->get_table_state();
 
         if (app->kinematics_mode_ == KinematicsMode::Pose) {
-            // Pose mode: compute servo commands via IK
+            // ── Pose mode ────────────────────────────────────────────────
+            // Table pose was already integrated by the physics loop above.
+            // Compute IK to find the servo angles that realize this pose.
+            const double phi   = cur_table.phi;
+            const double theta = cur_table.theta;
+            const double z_t   = cur_table.z_t;
+
             auto result = app->kinematics_.inverseKinematics(phi, theta, z_t);
             if (result) {
-                app->servo_cmd_ = *result;
-                app->ik_failed_ = false;
+                // Servo angles track the table pose directly — no lag integration.
+                // The table pose is the truth; servo angles are derived.
+                app->servo_angles_ = *result;
+                app->servo_cmd_    = *result;
+                app->ik_failed_    = false;
             } else {
                 app->ik_failed_ = true;
-                // Keep last valid servo_cmd_
+                // Keep last valid servo_angles_ so rendering doesn't jump.
             }
-        }
-        // In Servo mode, servo_cmd_ is written directly by GUI sliders (set_servo_cmd).
-
-        // First-order servo dynamics: integrate each arm angle toward its command
-        const double tau = app->params_.servo_time_constant;
-        const double dt  = app->params_.control_dt;
-        for (int i = 0; i < 3; ++i) {
-            app->servo_angles_.alpha[i] +=
-                (app->servo_cmd_.alpha[i] - app->servo_angles_.alpha[i]) / tau * dt;
-        }
-
-        if (app->kinematics_mode_ == KinematicsMode::Servo && sim_state == SimulationState::Running) {
-            // FK: derive table pose from current (integrated) servo angles
-            auto pose = app->kinematics_.forwardKinematics(
-                app->servo_angles_, FKMethod::YouTubeClosedForm);
-            if (pose) {
-                // Write FK result back into the simulator state so physics + renderer track it
-                StateVector s = app->simulator_->get_state();
-                s(state_index::VARPHI_X) = (*pose)[0];
-                s(state_index::THETA_Y)  = (*pose)[1];
-                s(state_index::Z_TABLE)  = (*pose)[2];
-                app->simulator_->set_state(s);
-            }
+        } else {
+            // ── Servo mode ───────────────────────────────────────────────
+            // Servo integration and FK injection are handled inside the
+            // physics sub-step loop above (when Running). When paused,
+            // apply FK once so the renderer shows consistent geometry.
+            // if (sim_state != SimulationState::Running) {
+            //     auto fkPaused = app->kinematics_.forwardKinematics(
+            //         app->servo_angles_, app->elbow_angles_);
+            //     if (fkPaused) {
+            //         app->elbow_angles_ = fkPaused->elbow;
+            //         StateVector s = app->simulator_->get_state();
+            //         s(state_index::VARPHI_X) = fkPaused->phi;
+            //         s(state_index::THETA_Y)  = fkPaused->theta;
+            //         s(state_index::Z_TABLE)  = fkPaused->z_t;
+            //         app->simulator_->set_state(s);
+            //         app->ik_failed_ = false;
+            //     } else {
+            //         app->ik_failed_ = true;
+            //     }
+            // }
         }
     }
 
@@ -428,26 +481,28 @@ void main_loop_iteration() {
     // Apply Manual State (when paused and a slider changed)
     // ====================================================================
     if (app->main_window_->get_control_panel().is_manual_state_changed()) {
-        const StateVector& manual = app->main_window_->get_control_panel().get_manual_state();
-        app->simulator_->set_state(manual);
-        app->estimator_->reset(manual);
+        BallState  manual_ball  = app->main_window_->get_control_panel().get_manual_ball_state();
+        TableState manual_table = app->main_window_->get_control_panel().get_manual_table_state();
+        app->simulator_->set_ball_state(manual_ball);
+        app->simulator_->set_table_state(manual_table);
+        app->estimator_->reset(manual_ball, manual_table);
         app->main_window_->get_control_panel().clear_manual_state_changed();
     }
 
     // Keep manual state sliders in sync with current simulator state when paused
     if (sim_state != SimulationState::Running) {
-        app->main_window_->get_control_panel().sync_manual_state(app->simulator_->get_state());
+        app->main_window_->get_control_panel().sync_manual_state(
+            app->simulator_->get_ball_state(), app->simulator_->get_table_state());
     }
 
     // ====================================================================
     // Handle Reset Request
     // ====================================================================
     if (app->main_window_->get_control_panel().should_reset()) {
-        StateVector initial_state = StateVector::Zero();
-        initial_state(state_index::Z_TABLE) = app->params_.arm_z_nominal;
-        initial_state(state_index::Z_BALL)  = app->params_.arm_z_nominal + app->params_.ball_radius;
-        app->simulator_->reset(initial_state);
-        app->estimator_->reset(initial_state);
+        BallState  initial_ball  = make_initial_ball_state(0.0, 0.0, app->params_.arm_z_nominal + app->params_.ball_radius);
+        TableState initial_table = make_initial_table_state(0.0, 0.0, app->params_.arm_z_nominal);
+        app->simulator_->reset(initial_ball, initial_table);
+        app->estimator_->reset(initial_ball, initial_table);
         app->controller_->reset();
         app->plotter_->clear();
         app->simulation_time_ = 0.0;
@@ -466,7 +521,8 @@ void main_loop_iteration() {
     // ====================================================================
 
     // Get current state for rendering
-    StateVector current_state = app->simulator_->get_state();
+    const BallState  current_ball  = app->simulator_->get_ball_state();
+    const TableState current_table = app->simulator_->get_table_state();
 
     // Clear screen and depth buffer ONCE before rendering
     glClearColor(0.15f, 0.15f, 0.18f, 1.0f);
@@ -476,20 +532,31 @@ void main_loop_iteration() {
     glEnable(GL_DEPTH_TEST);
 
     // Render 3D scene
-    app->renderer_->render(current_state);
+    app->renderer_->render(current_ball, current_table);
 
-    // Render arm legs: compute G, E, T for each arm in physics coords, pass to renderer
+    // Render arm legs: compute G, E, T for each arm in physics coords, pass to renderer.
+    // Use tableAttachPointFromBeta when elbow angles are available (FK-consistent geometry);
+    // fall back to tableAttachPoint from pose states otherwise (Pose mode).
     {
-        const double phi   = current_state(state_index::VARPHI_X);
-        const double theta = current_state(state_index::THETA_Y);
-        const double z_t   = current_state(state_index::Z_TABLE);
+        const double phi   = current_table.phi;
+        const double theta = current_table.theta;
+        const double z_t   = current_table.z_t;
 
         std::array<std::array<std::array<float, 3>, 3>, 3> arm_pts;
         for (int i = 0; i < 3; ++i) {
             const auto& kin = app->kinematics_;
             const auto G = kin.groundPoint(i);
             const auto E = kin.elbowPosition(i, app->servo_angles_.alpha[i]);
-            const auto T = kin.tableAttachPoint(i, phi, theta, z_t);
+            // In Servo mode the elbow angles are valid FK outputs; use them
+            // so T is consistent with the β-constraint geometry.
+            // In Pose mode, derive T from the table pose states directly.
+            std::array<double, 3> T;
+            if (app->kinematics_mode_ == KinematicsMode::Servo) {
+                T = kin.tableAttachPointFromBeta(
+                        i, app->servo_angles_.alpha[i], app->elbow_angles_.beta[i]);
+            } else {
+                T = kin.tableAttachPoint(i, phi, theta, z_t);
+            }
             arm_pts[i][0] = {static_cast<float>(G[0]), static_cast<float>(G[1]), static_cast<float>(G[2])};
             arm_pts[i][1] = {static_cast<float>(E[0]), static_cast<float>(E[1]), static_cast<float>(E[2])};
             arm_pts[i][2] = {static_cast<float>(T[0]), static_cast<float>(T[1]), static_cast<float>(T[2])};
@@ -507,25 +574,24 @@ void main_loop_iteration() {
     arm_status.ik_failed     = app->ik_failed_;
     arm_status.mode          = app->kinematics_mode_;
     arm_status.show_legs     = app->renderer_->get_show_legs();
+    arm_status.fk_method     = app->fk_method_;
+    // Populate elbow angles (β) from last FK solve
+    arm_status.elbow_angles  = app->elbow_angles_;
     // Populate geometry from current params
     arm_status.req_L1        = app->params_.arm_L1;
     arm_status.req_L2        = app->params_.arm_L2;
     arm_status.req_Rg        = app->params_.arm_Rg;
     arm_status.req_Rt        = app->params_.arm_Rt;
     arm_status.req_z_nominal = app->params_.arm_z_nominal;
-    // Populate FK result if in Servo mode
+    // Populate FK result if in Servo mode (reuse already-computed elbow_angles_)
     if (app->kinematics_mode_ == KinematicsMode::Servo) {
-        auto pose = app->kinematics_.forwardKinematics(
-            app->servo_angles_, FKMethod::YouTubeClosedForm);
-        if (pose) {
-            arm_status.fk_phi   = (*pose)[0];
-            arm_status.fk_theta = (*pose)[1];
-            arm_status.fk_z     = (*pose)[2];
-            arm_status.fk_valid = true;
-        }
+        arm_status.fk_phi   = current_table.phi;
+        arm_status.fk_theta = current_table.theta;
+        arm_status.fk_z     = current_table.z_t;
+        arm_status.fk_valid = !app->ik_failed_;
     }
 
-    app->main_window_->render(current_state, *app->controller_, *app->estimator_,
+    app->main_window_->render(current_ball, current_table, *app->controller_, *app->estimator_,
                               *app->renderer_, *app->plotter_,
                               app->simulator_->isInContact(), arm_status);
     app->main_window_->end_frame();
@@ -539,6 +605,14 @@ void main_loop_iteration() {
     }
     if (arm_status.cmd_changed && app->kinematics_mode_ == KinematicsMode::Servo) {
         app->servo_cmd_ = arm_status.servo_cmd;
+        // When paused, snap servo_angles_ to cmd immediately so FK sees the new pose.
+        if (sim_state != SimulationState::Running) {
+            app->servo_angles_ = app->servo_cmd_;
+            app->elbow_angles_ = arm_status.elbow_angles;  // Also update elbow angles from GUI sliders
+        }
+    }
+    if (arm_status.fk_method_changed) {
+        app->fk_method_ = arm_status.fk_method;
     }
     if (arm_status.geom_changed) {
         app->params_.arm_L1        = arm_status.req_L1;

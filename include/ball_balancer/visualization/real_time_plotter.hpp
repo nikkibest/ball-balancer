@@ -63,7 +63,8 @@ public:
      */
     void update(
         double time,
-        const StateVector& state,
+        const BallState& ball,
+        const TableState& table,
         const ControlVector& control,
         const Eigen::Vector2d& setpoint
     );

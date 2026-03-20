@@ -35,6 +35,69 @@
 namespace ball_balancer {
 
 // ============================================================================
+// TableState — Table kinematics snapshot passed to BallDynamics
+// ============================================================================
+
+/**
+ * @brief Snapshot of table kinematics passed to BallDynamics each step.
+ *
+ * The Simulator builds this from the current state vector and servo dynamics
+ * so that BallDynamics remains fully decoupled from Simulator internals.
+ *
+ * Fields:
+ *   phi, theta, z_t         — configuration  (rad, rad, m)
+ *   phi_dot, theta_dot, z_t_dot   — velocities     (rad/s, rad/s, m/s)
+ *   phi_ddot, theta_ddot, z_t_ddot — accelerations  (rad/s², rad/s², m/s²)
+ */
+struct TableState {
+    // Configuration
+    double phi{0.0};        ///< Roll angle about X-axis (rad) — THETA_X
+    double theta{0.0};      ///< Pitch angle about Y-axis (rad) — THETA_Y
+    double z_t{0.0};        ///< Table centre height (m) — Z_TABLE
+
+    // First derivatives
+    double phi_dot{0.0};    ///< Roll rate (rad/s)
+    double theta_dot{0.0};  ///< Pitch rate (rad/s)
+    double z_t_dot{0.0};    ///< Table vertical velocity (m/s)
+
+    // Second derivatives
+    double phi_ddot{0.0};   ///< Roll angular acceleration (rad/s²)
+    double theta_ddot{0.0}; ///< Pitch angular acceleration (rad/s²)
+    double z_t_ddot{0.0};   ///< Table vertical acceleration (m/s²)
+};
+
+// ============================================================================
+// BallState — Ball 
+// ============================================================================
+
+/**
+ * @brief Snapshot of ball dynamics states.
+ *
+ * The Simulator ball state
+ *
+ * Fields:
+ *   x, y, z_ball      — configuration  (m, m, m)
+ *   vx, vy, vz_ball   — velocities     (m/s, m/s, m/s)
+ *   ax, ay, az        — accelerations  (m/s², m/s², m/s²)
+ */
+struct BallState {
+    // Configuration
+    double x{0.0};          ///< Ball horizontal position (m)
+    double y{0.0};          ///< Ball horizontal position (m)
+    double z_ball{0.0};     ///< Ball vertical position (m)
+
+    // First derivatives
+    double vx{0.0};         ///< Ball horizontal velocity (m/s)
+    double vy{0.0};         ///< Ball horizontal velocity (m/s)
+    double vz_ball{0.0};    ///< Ball vertical velocity (m/s)
+
+    // Second derivatives
+    double ax{0.0};         ///< Ball horizontal acceleration (m/s²)
+    double ay{0.0};         ///< Ball horizontal acceleration (m/s²)
+    double az_ball{0.0};         ///< Ball vertical acceleration (m/s²)
+};
+
+// ============================================================================
 // State-Space Types (Fixed-size for performance)
 // ============================================================================
 
@@ -257,12 +320,79 @@ namespace measurement_index {
 // ============================================================================
 
 /**
- * @brief Create initial state vector
- * @param x Initial x position (m)
- * @param y Initial y position (m)
- * @param z_ball Initial ball vertical position (m)
- * @param z_table Initial table vertical position (m)
- * @return Initialized state vector with zero velocity and tilt
+ * @brief Pack BallState and TableState into a StateVector (for Kalman filter internals).
+ * Velocities and accelerations from BallState; config from TableState.
+ * TableState accelerations (phi_ddot, theta_ddot, z_t_ddot) are not stored in StateVector.
+ */
+inline StateVector toStateVector(const BallState& ball, const TableState& table) {
+    StateVector s = StateVector::Zero();
+    s(state_index::X)        = ball.x;
+    s(state_index::Y)        = ball.y;
+    s(state_index::Z_BALL)   = ball.z_ball;
+    s(state_index::VX)       = ball.vx;
+    s(state_index::VY)       = ball.vy;
+    s(state_index::VZ_BALL)  = ball.vz_ball;
+    s(state_index::VARPHI_X) = table.phi;
+    s(state_index::THETA_Y)  = table.theta;
+    s(state_index::Z_TABLE)  = table.z_t;
+    return s;
+}
+
+/**
+ * @brief Extract BallState from a StateVector.
+ * Accelerations are set to zero (not stored in StateVector).
+ */
+inline BallState toBallState(const StateVector& s) {
+    BallState ball;
+    ball.x       = s(state_index::X);
+    ball.y       = s(state_index::Y);
+    ball.z_ball  = s(state_index::Z_BALL);
+    ball.vx      = s(state_index::VX);
+    ball.vy      = s(state_index::VY);
+    ball.vz_ball = s(state_index::VZ_BALL);
+    return ball;
+}
+
+/**
+ * @brief Extract TableState from a StateVector.
+ * Rates and accelerations are set to zero (not stored in StateVector).
+ */
+inline TableState toTableState(const StateVector& s) {
+    TableState table;
+    table.phi   = s(state_index::VARPHI_X);
+    table.theta = s(state_index::THETA_Y);
+    table.z_t   = s(state_index::Z_TABLE);
+    return table;
+}
+
+/**
+ * @brief Create an initial BallState.
+ */
+inline BallState make_initial_ball_state(
+    double x = 0.0, double y = 0.0, double z_ball = 0.0
+) {
+    BallState ball;
+    ball.x      = x;
+    ball.y      = y;
+    ball.z_ball = z_ball;
+    return ball;
+}
+
+/**
+ * @brief Create an initial TableState.
+ */
+inline TableState make_initial_table_state(
+    double phi = 0.0, double theta = 0.0, double z_t = 0.0
+) {
+    TableState table;
+    table.phi   = phi;
+    table.theta = theta;
+    table.z_t   = z_t;
+    return table;
+}
+
+/**
+ * @brief Create initial state vector (kept for Kalman filter internal use).
  */
 inline StateVector make_initial_state(
     double x = 0.0, double y = 0.0,

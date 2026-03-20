@@ -48,7 +48,8 @@ RealTimePlotter::RealTimePlotter(const SystemParameters& params)
 
 void RealTimePlotter::update(
     double time,
-    const StateVector& state,
+    const BallState& ball,
+    const TableState& table,
     const ControlVector& control,
     const Eigen::Vector2d& setpoint
 ) {
@@ -56,15 +57,15 @@ void RealTimePlotter::update(
     current_setpoint_ = setpoint;
 
     // Extract state components
-    double x = state(state_index::X);
-    double y = state(state_index::Y);
-    double z = state(state_index::Z_BALL);
-    double vx = state(state_index::VX);
-    double vy = state(state_index::VY);
-    double vz = state(state_index::VZ_BALL);
-    double varphi_x = control(0);  // Use control (not state) for table angles
-    double theta_y = control(1);
-    double table_z = state(state_index::Z_TABLE);
+    double x        = ball.x;
+    double y        = ball.y;
+    double z        = ball.z_ball;
+    double vx       = ball.vx;
+    double vy       = ball.vy;
+    double vz       = ball.vz_ball;
+    double varphi_x = control(0);  // Use control (not state) for commanded table angles
+    double theta_y  = control(1);
+    double table_z  = table.z_t;
 
     // Compute errors
     double error_x = setpoint.x() - x;

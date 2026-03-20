@@ -50,12 +50,17 @@ enum class ControllerState {
 struct ArmStatus {
     ServoAngles servo_angles{};       ///< Current integrated servo angles (read-only from GUI)
     ServoAngles servo_cmd{};          ///< Commanded servo angles (writable in Servo mode)
+    ElbowAngles elbow_angles{};       ///< Elbow angles α (read-only, filled by Application)
     bool        ik_failed{false};     ///< True when last IK call returned nullopt
-    KinematicsMode mode{KinematicsMode::Pose}; ///< Active kinematics mode (read/write)
+    KinematicsMode mode{KinematicsMode::Servo}; ///< Active kinematics mode (read/write)
     bool        show_legs{true};      ///< Leg visibility toggle (read/write)
     bool        mode_changed{false};  ///< Set by GUI when mode radio button changes
     bool        cmd_changed{false};   ///< Set by GUI when servo cmd sliders change
     bool        show_legs_changed{false}; ///< Set by GUI when toggle changes
+
+    // FK method selection (read/write — GUI sets, Application applies)
+    FKMethod fk_method{FKMethod::NewtonRaphson};
+    bool     fk_method_changed{false};
 
     // FK verification output (filled by Application in Servo mode)
     double fk_phi{0.0};
@@ -117,7 +122,8 @@ public:
      * Must be called between ImGui::NewFrame() and ImGui::Render()
      */
     bool render(
-        const StateVector& state,
+        const BallState& ball,
+        const TableState& table,
         PIDController& controller,
         StateEstimator& estimator,
         bool in_contact,
@@ -163,16 +169,21 @@ public:
     ControlVector get_manual_control() const { return control_; }
 
     /**
-     * @brief Get the manually-edited state vector (when simulation is paused)
-     * @return StateVector with values from GUI sliders
+     * @brief Get the manually-edited ball state (when simulation is paused)
      */
-    const StateVector& get_manual_state() const { return manual_state_; }
+    BallState get_manual_ball_state() const { return toBallState(manual_state_); }
 
     /**
-     * @brief Set the manual state (called by application to sync slider display)
-     * @param state Current simulator state to initialise sliders from
+     * @brief Get the manually-edited table state (when simulation is paused)
      */
-    void sync_manual_state(const StateVector& state) { manual_state_ = state; }
+    TableState get_manual_table_state() const { return toTableState(manual_state_); }
+
+    /**
+     * @brief Sync slider display from current simulator state (called when paused)
+     */
+    void sync_manual_state(const BallState& ball, const TableState& table) {
+        manual_state_ = toStateVector(ball, table);
+    }
 
     /**
      * @brief Get current setpoint
@@ -202,15 +213,17 @@ public:
 
 private:
     /**
-     * @brief Render simulation manual controls section (tilt angles)
-     */
-    void render_manual_controls();
-
-    /**
-     * @brief Render manual state editor section (all 6 physical states, paused only)
+     * @brief Render unified state controls: FK/IK mode selector + all state sliders.
+     *
+     * Enables/disables individual sliders based on sim state and kinematics mode.
+     * When sim is off: all sliders editable.
+     * When sim is running in Pose mode: table states editable; others read-only.
+     * When sim is running in Servo mode: servo angle sliders editable; others read-only.
+     *
+     * @param arm_status  Arm mechanism state (read/write)
      * @return true if any slider value changed this frame
      */
-    bool render_manual_state_sliders();
+    bool render_state_controls(ArmStatus& arm_status);
 
     /**
      * @brief Render simulation control section
@@ -236,13 +249,11 @@ private:
 
     /**
      * @brief Render system status section
-     * @param state Current system state
-     * @param in_contact Whether the ball is currently in contact with the table
      */
-    void render_system_status(const StateVector& state, bool in_contact);
+    void render_system_status(const BallState& ball, const TableState& table, bool in_contact);
 
     /**
-     * @brief Render arm mechanism section (kinematics mode, servo angles, FK display).
+     * @brief Render arm mechanism section (IK status, FK result display, geometry params).
      * @param arm_status  Bidirectional arm state; GUI reads current values and writes changes.
      */
     void render_arm_mechanism(ArmStatus& arm_status);

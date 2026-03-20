@@ -30,7 +30,8 @@ ControlPanel::ControlPanel(const SystemParameters& params)
 }
 
 bool ControlPanel::render(
-    const StateVector& state,
+    const BallState& ball,
+    const TableState& table,
     PIDController& controller,
     StateEstimator& estimator,
     bool in_contact,
@@ -47,10 +48,7 @@ bool ControlPanel::render(
     render_simulation_controls();
     ImGui::Separator();
 
-    render_manual_controls();
-    ImGui::Separator();
-
-    render_manual_state_sliders();
+    render_state_controls(arm_status);
     ImGui::Separator();
 
     render_setpoint_controls();
@@ -65,7 +63,7 @@ bool ControlPanel::render(
     render_arm_mechanism(arm_status);
     ImGui::Separator();
 
-    render_system_status(state, in_contact);
+    render_system_status(ball, table, in_contact);
 
     ImGui::End();
     return true;
@@ -172,32 +170,6 @@ void ControlPanel::render_simulation_controls() {
         }
 
 
-    }
-}
-
-void ControlPanel::render_manual_controls() {
-    if (ImGui::CollapsingHeader("Manual Control", ImGuiTreeNodeFlags_DefaultOpen)) {
-        float varphi_x_cmd_ = static_cast<float>(control_(control_index::VARPHI_X_CMD)); 
-        float theta_y_cmd_ = static_cast<float>(control_(control_index::THETA_Y_CMD)); 
-        float table_z_cmd_ = static_cast<float>(control_(control_index::TABLE_Z_CMD)); 
-
-        if (ImGui::SliderFloat("Varphi (x)##varphi_x_cmd", &varphi_x_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
-            control_(control_index::VARPHI_X_CMD) = varphi_x_cmd_;
-        }
-        if (ImGui::SliderFloat("Theta (y)##theta_y_cmd", &theta_y_cmd_, -params_.max_tilt_angle, params_.max_tilt_angle, "%.3f")) {
-            control_(control_index::THETA_Y_CMD) = theta_y_cmd_;
-        }
-        const float z_min = 0.01f;
-        const float z_max = static_cast<float>(params_.arm_L1 + params_.arm_L2);
-        if (ImGui::SliderFloat("z_t##table_z_cmd", &table_z_cmd_, z_min, z_max, "%.3f")) {
-            control_(control_index::TABLE_Z_CMD) = table_z_cmd_;
-        }
-        float button_width = ImGui::GetContentRegionAvail().x;
-        if (ImGui::Button("Reset Manuals", ImVec2(button_width, 0))) {
-            control_(control_index::VARPHI_X_CMD) = 0.0f;
-            control_(control_index::THETA_Y_CMD) = 0.0f;
-            control_(control_index::TABLE_Z_CMD) = 0.0f;
-        }
     }
 }
 
@@ -369,7 +341,9 @@ void ControlPanel::render_kalman_tuning(StateEstimator& estimator) {
     }
 }
 
-void ControlPanel::render_system_status(const StateVector& state, bool in_contact) {
+void ControlPanel::render_system_status(
+    const BallState& ball, const TableState& table, bool in_contact
+) {
     if (ImGui::CollapsingHeader("System Status", ImGuiTreeNodeFlags_DefaultOpen)) {
         // Contact mode indicator
         ImGui::Text("Mode:");
@@ -385,9 +359,9 @@ void ControlPanel::render_system_status(const StateVector& state, bool in_contac
         // Ball position
         ImGui::Text("Ball Position:");
         ImGui::Indent();
-        ImGui::Text("X: %.4f m", state(state_index::X));
-        ImGui::Text("Y: %.4f m", state(state_index::Y));
-        ImGui::Text("Z: %.4f m", state(state_index::Z_BALL));
+        ImGui::Text("X: %.4f m", ball.x);
+        ImGui::Text("Y: %.4f m", ball.y);
+        ImGui::Text("Z: %.4f m", ball.z_ball);
         ImGui::Unindent();
 
         ImGui::Spacing();
@@ -395,14 +369,11 @@ void ControlPanel::render_system_status(const StateVector& state, bool in_contac
         // Ball velocity
         ImGui::Text("Ball Velocity:");
         ImGui::Indent();
-        ImGui::Text("Vx: %.4f m/s", state(state_index::VX));
-        ImGui::Text("Vy: %.4f m/s", state(state_index::VY));
-        ImGui::Text("Vz: %.4f m/s", state(state_index::VZ_BALL));
+        ImGui::Text("Vx: %.4f m/s", ball.vx);
+        ImGui::Text("Vy: %.4f m/s", ball.vy);
+        ImGui::Text("Vz: %.4f m/s", ball.vz_ball);
 
-        // Velocity magnitude
-        double vx = state(state_index::VX);
-        double vy = state(state_index::VY);
-        double speed = std::sqrt(vx * vx + vy * vy);
+        const double speed = std::sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
         ImGui::Text("Speed: %.4f m/s", speed);
         ImGui::Unindent();
 
@@ -411,10 +382,8 @@ void ControlPanel::render_system_status(const StateVector& state, bool in_contac
         // Table tilt
         ImGui::Text("Table Tilt:");
         ImGui::Indent();
-        double varphi_x_deg = state(state_index::VARPHI_X) * 180.0 / M_PI;
-        double theta_y_deg = state(state_index::THETA_Y) * 180.0 / M_PI;
-        ImGui::Text("X: %.2f deg", varphi_x_deg);
-        ImGui::Text("Y: %.2f deg", theta_y_deg);
+        ImGui::Text("X: %.2f deg", table.phi   * 180.0 / M_PI);
+        ImGui::Text("Y: %.2f deg", table.theta  * 180.0 / M_PI);
         ImGui::Unindent();
 
         ImGui::Spacing();
@@ -422,9 +391,9 @@ void ControlPanel::render_system_status(const StateVector& state, bool in_contac
         // Error from setpoint
         ImGui::Text("Position Error:");
         ImGui::Indent();
-        double error_x = setpoint_.x() - state(state_index::X);
-        double error_y = setpoint_.y() - state(state_index::Y);
-        double error_mag = std::sqrt(error_x * error_x + error_y * error_y);
+        const double error_x   = setpoint_.x() - ball.x;
+        const double error_y   = setpoint_.y() - ball.y;
+        const double error_mag = std::sqrt(error_x * error_x + error_y * error_y);
 
         ImGui::Text("X: %.4f m", error_x);
         ImGui::Text("Y: %.4f m", error_y);
@@ -444,81 +413,151 @@ void ControlPanel::render_system_status(const StateVector& state, bool in_contac
     }
 }
 
-bool ControlPanel::render_manual_state_sliders() {
+bool ControlPanel::render_state_controls(ArmStatus& arm_status) {
     manual_state_changed_ = false;
 
-    if (!ImGui::CollapsingHeader("Manual State (Paused Only)")) {
+    if (!ImGui::CollapsingHeader("State Controls", ImGuiTreeNodeFlags_DefaultOpen)) {
         return false;
     }
 
-    // Only active when simulation is not running
-    const bool paused = (sim_state_ != SimulationState::Running);
-    if (!paused) {
-        ImGui::TextDisabled("Start simulation to lock sliders.");
+    const bool sim_running = (sim_state_ == SimulationState::Running);
+    const bool pose_mode   = (arm_status.mode == KinematicsMode::Pose);
+    const bool servo_mode  = (arm_status.mode == KinematicsMode::Servo);
+
+    // ── Kinematics mode selector ────────────────────────────────────────────
+    ImGui::Text("Kinematics Mode:");
+    ImGui::SameLine();
+    int modeInt = servo_mode ? 1 : 0;
+    if (ImGui::RadioButton("Pose (IK)##sc", modeInt == 0)) {
+        if (modeInt != 0) {
+            arm_status.mode = KinematicsMode::Pose;
+            arm_status.mode_changed = true;
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Servo (FK)##sc", modeInt == 1)) {
+        if (modeInt != 1) {
+            arm_status.mode = KinematicsMode::Servo;
+            arm_status.mode_changed = true;
+        }
     }
 
-    ImGui::BeginDisabled(!paused);
+    ImGui::Spacing();
+    ImGui::Separator();
 
-    ImGui::TextUnformatted("Ball Position (m)");
+    // ── 1. Servo angles ─────────────────────────────────────────────────────
+    // Enabled: sim off (all free), or sim running + Servo mode
+    ImGui::TextUnformatted("Servo Angles (deg)");
+    if (pose_mode && sim_running) {ImGui::BeginDisabled();}
+    for (int i = 0; i < 3; ++i) {
+        float deg = static_cast<float>(arm_status.servo_cmd.alpha[i] * 180.0 / M_PI);
+        char label[32];
+        snprintf(label, sizeof(label), "alpha_%d##sc_srv", i);
+        if (ImGui::SliderFloat(label, &deg, 0.0f, 180.0f, "%.1f")) {
+            arm_status.servo_cmd.alpha[i] = static_cast<double>(deg) * M_PI / 180.0;
+            arm_status.cmd_changed = true;
+            if (!sim_running) {
+                // Also update manual_state_ servo angles via arm_status so Application
+                // can apply them; no separate manual_state_ entry for servos —
+                // set the flag so Application re-runs FK→state.
+                manual_state_changed_ = true;
+            }
+        }
+    }
+    if (pose_mode && sim_running) {ImGui::EndDisabled();}
 
-    float x = static_cast<float>(manual_state_(state_index::X));
-    float y = static_cast<float>(manual_state_(state_index::Y));
-    float z_ball = static_cast<float>(manual_state_(state_index::Z_BALL));
+    ImGui::Spacing();
 
-    const float half_table = static_cast<float>(params_.table_radius);
+    // ── 2. Elbow angles (always read-only display) ───────────────────────────
+    ImGui::TextUnformatted("Elbow Angles (deg)");
+    if (sim_running) {ImGui::BeginDisabled();}
+    for (int i = 0; i < 3; ++i) {
+        float deg = static_cast<float>(arm_status.elbow_angles.beta[i] * 180.0 / M_PI);
+        char label[32];
+        snprintf(label, sizeof(label), "elbow_%d##sc_elb", i);
+        if (ImGui::SliderFloat(label, &deg, 0.0f, 180.0f, "%.1f")) {
+            arm_status.elbow_angles.beta[i] = static_cast<double>(deg) * M_PI / 180.0;
+            arm_status.cmd_changed = true;
+            if (!sim_running) {
+                // Also update manual_state_ servo angles via arm_status so Application
+                // can apply them; no separate manual_state_ entry for servos —
+                // set the flag so Application re-runs FK→state.
+                manual_state_changed_ = true;
+            }
+        }
+    }
+    if (sim_running) {ImGui::EndDisabled();}    
 
-    if (ImGui::SliderFloat("x##ms",     &x,      -half_table, half_table, "%.3f")) {
-        manual_state_(state_index::X) = x;
+    ImGui::Spacing();
+
+    // ── 3. Table roll, pitch, height ─────────────────────────────────────────
+    // Enabled: sim off (all free), or sim running + Pose mode
+    const bool table_sliders_enabled = !sim_running || pose_mode;
+    ImGui::TextUnformatted("Table Pose");
+    ImGui::BeginDisabled(!table_sliders_enabled  && !sim_running);
+
+    const float max_tilt = static_cast<float>(params_.max_tilt_angle);
+    const float z_t_min  = 0.01f;
+    const float z_t_max  = static_cast<float>(params_.arm_L1 + params_.arm_L2);
+
+    float varphi_x = static_cast<float>(manual_state_(state_index::VARPHI_X));
+    float theta_y  = static_cast<float>(manual_state_(state_index::THETA_Y));
+    float z_table  = static_cast<float>(manual_state_(state_index::Z_TABLE));
+
+    if (ImGui::SliderFloat("roll (phi)##sc_tbl",   &varphi_x, -max_tilt, max_tilt, "%.3f rad")) {
+        manual_state_(state_index::VARPHI_X) = varphi_x;
         manual_state_changed_ = true;
     }
-    if (ImGui::SliderFloat("y##ms",     &y,      -half_table, half_table, "%.3f")) {
-        manual_state_(state_index::Y) = y;
+    if (ImGui::SliderFloat("pitch (theta)##sc_tbl", &theta_y, -max_tilt, max_tilt, "%.3f rad")) {
+        manual_state_(state_index::THETA_Y) = theta_y;
         manual_state_changed_ = true;
     }
-    if (ImGui::SliderFloat("z_ball##ms", &z_ball, -0.1f, 0.5f, "%.3f")) {
-        manual_state_(state_index::Z_BALL) = z_ball;
+    if (ImGui::SliderFloat("height (z_t)##sc_tbl",  &z_table,  z_t_min,  z_t_max,  "%.3f m")) {
+        manual_state_(state_index::Z_TABLE) = z_table;
         manual_state_changed_ = true;
     }
     ImGui::EndDisabled();
 
     ImGui::Spacing();
-    ImGui::TextUnformatted("Table Tilt (rad)");
 
-    float varphi_x = static_cast<float>(manual_state_(state_index::VARPHI_X));
-    float theta_y = static_cast<float>(manual_state_(state_index::THETA_Y));
-    const float max_tilt = static_cast<float>(params_.max_tilt_angle);
+    // ── 4. Ball position ──────────────────────────────────────────────────────
+    // Enabled: sim off only
+    ImGui::TextUnformatted("Ball Position");
+    ImGui::BeginDisabled(sim_running);
 
-    if (ImGui::SliderFloat("varphi_x##ms", &varphi_x, -max_tilt, max_tilt, "%.3f")) {
-        manual_state_(state_index::VARPHI_X) = varphi_x;
+    const float half_table = static_cast<float>(params_.table_radius);
+    float x      = static_cast<float>(manual_state_(state_index::X));
+    float y      = static_cast<float>(manual_state_(state_index::Y));
+    float z_ball = static_cast<float>(manual_state_(state_index::Z_BALL));
+
+    if (ImGui::SliderFloat("x##sc_ball",     &x,      -half_table, half_table, "%.3f m")) {
+        manual_state_(state_index::X) = x;
         manual_state_changed_ = true;
     }
-    if (ImGui::SliderFloat("theta_y##ms", &theta_y, -max_tilt, max_tilt, "%.3f")) {
-        manual_state_(state_index::THETA_Y) = theta_y;
+    if (ImGui::SliderFloat("y##sc_ball",     &y,      -half_table, half_table, "%.3f m")) {
+        manual_state_(state_index::Y) = y;
         manual_state_changed_ = true;
     }
+    if (ImGui::SliderFloat("z##sc_ball",     &z_ball, -0.1f, 0.5f, "%.3f m")) {
+        manual_state_(state_index::Z_BALL) = z_ball;
+        manual_state_changed_ = true;
+    }
+    ImGui::EndDisabled();
 
+    // Reset button (only when sim is off)
     ImGui::Spacing();
-    ImGui::TextUnformatted("Table Height (m)");
-
-    const float z_t_min = 0.01f;
-    const float z_t_max = static_cast<float>(params_.arm_L1 + params_.arm_L2);
-    float z_table = static_cast<float>(manual_state_(state_index::Z_TABLE));
-    if (ImGui::SliderFloat("z_table##ms", &z_table, z_t_min, z_t_max, "%.3f")) {
-        manual_state_(state_index::Z_TABLE) = z_table;
-        manual_state_changed_ = true;
-    }
-
-    // Reset button
-    ImGui::Spacing();
+    ImGui::BeginDisabled(sim_running);
     float btn_w = ImGui::GetContentRegionAvail().x;
-    if (ImGui::Button("Zero All States##ms", ImVec2(btn_w, 0))) {
+    if (ImGui::Button("Zero All States##sc", ImVec2(btn_w, 0))) {
         manual_state_ = StateVector::Zero();
         manual_state_(state_index::Z_TABLE) = params_.min_table_height;
         manual_state_(state_index::Z_BALL)  = params_.min_table_height + params_.ball_radius;
+        // Zero servo commands too
+        for (int i = 0; i < 3; ++i) arm_status.servo_cmd.alpha[i] = 0.0;
+        arm_status.cmd_changed = true;
         manual_state_changed_ = true;
     }
-
-    
+    ImGui::EndDisabled();
 
     return manual_state_changed_;
 }
@@ -537,27 +576,7 @@ void ControlPanel::render_arm_mechanism(ArmStatus& arm_status) {
 
     ImGui::Spacing();
 
-    // --- Mode radio buttons ---
-    ImGui::Text("Drive Mode:");
-    ImGui::SameLine();
-    int modeInt = (arm_status.mode == KinematicsMode::Servo) ? 1 : 0;
-    if (ImGui::RadioButton("Pose (IK)", modeInt == 0)) {
-        if (modeInt != 0) {
-            arm_status.mode = KinematicsMode::Pose;
-            arm_status.mode_changed = true;
-        }
-    }
-    ImGui::SameLine();
-    if (ImGui::RadioButton("Servo (FK)", modeInt == 1)) {
-        if (modeInt != 1) {
-            arm_status.mode = KinematicsMode::Servo;
-            arm_status.mode_changed = true;
-        }
-    }
-
-    ImGui::Spacing();
-
-    // --- IK status indicator ---
+    // --- IK/FK status indicators ---
     ImGui::Text("IK Status:");
     ImGui::SameLine();
     if (arm_status.ik_failed) {
@@ -566,32 +585,26 @@ void ControlPanel::render_arm_mechanism(ArmStatus& arm_status) {
         ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "OK");
     }
 
-    ImGui::Spacing();
-
-    // --- Servo angles readout ---
-    if (ImGui::TreeNode("Servo Angles (current)")) {
-        const auto& a = arm_status.servo_angles.alpha;
-        ImGui::Text("alpha_0: %.2f deg", a[0] * 180.0 / M_PI);
-        ImGui::Text("alpha_1: %.2f deg", a[1] * 180.0 / M_PI);
-        ImGui::Text("alpha_2: %.2f deg", a[2] * 180.0 / M_PI);
-        ImGui::TreePop();
-    }
-
-    // --- Servo-mode sliders (only active in Servo mode) ---
+    // --- FK method + result (shown in Servo mode) ---
     if (arm_status.mode == KinematicsMode::Servo) {
         ImGui::Spacing();
-        ImGui::TextUnformatted("Servo Commands (deg)");
-        for (int i = 0; i < 3; ++i) {
-            float deg = static_cast<float>(arm_status.servo_cmd.alpha[i] * 180.0 / M_PI);
-            char label[32];
-            snprintf(label, sizeof(label), "alpha_%d##srv", i);
-            if (ImGui::SliderFloat(label, &deg, -90.0f, 90.0f, "%.1f")) {
-                arm_status.servo_cmd.alpha[i] = static_cast<double>(deg) * M_PI / 180.0;
-                arm_status.cmd_changed = true;
+        ImGui::Text("FK Method:");
+        ImGui::SameLine();
+        int fkInt = (arm_status.fk_method == FKMethod::YouTubeClosedForm) ? 1 : 0;
+        if (ImGui::RadioButton("Newton-Raphson##fk", fkInt == 0)) {
+            if (fkInt != 0) {
+                arm_status.fk_method = FKMethod::NewtonRaphson;
+                arm_status.fk_method_changed = true;
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Closed-Form##fk", fkInt == 1)) {
+            if (fkInt != 1) {
+                arm_status.fk_method = FKMethod::YouTubeClosedForm;
+                arm_status.fk_method_changed = true;
             }
         }
 
-        // --- FK verification display ---
         ImGui::Spacing();
         ImGui::TextUnformatted("FK Result:");
         ImGui::Indent();
@@ -623,9 +636,9 @@ void ControlPanel::render_arm_mechanism(ArmStatus& arm_status) {
         ImGui::Text("L2 (upper link)");
         geomChanged |= ImGui::SliderFloat("##L2", &L2, 0.01f, 0.20f, "%.3f m");
         ImGui::Text("Rg (ground radius)");
-        geomChanged |= ImGui::SliderFloat("##Rg", &Rg, 0.05f, 0.25f, "%.3f m");
+        geomChanged |= ImGui::SliderFloat("##Rg", &Rg, 0.03f, 0.25f, "%.3f m");
         ImGui::Text("Rt (table radius)");
-        geomChanged |= ImGui::SliderFloat("##Rt", &Rt, 0.03f, 0.15f, "%.3f m");
+        geomChanged |= ImGui::SliderFloat("##Rt", &Rt, 0.03f, 0.25f, "%.3f m");
         ImGui::Text("z_nominal (FK warm-start)");
         geomChanged |= ImGui::SliderFloat("##znom", &zn, 0.05f, 0.30f, "%.3f m");
 

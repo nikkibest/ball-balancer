@@ -122,16 +122,15 @@ public:
     bool initialize(int width, int height);
 
     /**
-     * @brief Render scene with current state
-     * @param state System state (ball position, table angles)
+     * @brief Render scene with current ball and table states.
      *
      * Renders:
-     * - Ball at position (state.x, state.y, ball_radius)
-     * - Table tilted by (state.theta_x, state.theta_y)
+     * - Ball at position (ball.x, ball.y, ball.z_ball)
+     * - Table tilted by (table.phi, table.theta) at height table.z_t
      * - Grid floor
      * - Coordinate axes
      */
-    void render(const StateVector& state);
+    void render(const BallState& ball, const TableState& table);
 
     /**
      * @brief Update viewport size

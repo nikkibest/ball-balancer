@@ -248,7 +248,7 @@ bool Renderer::initialize(int width, int height) {
     return true;
 }
 
-void Renderer::render(const StateVector& state) {
+void Renderer::render(const BallState& ball, const TableState& table) {
     // Get camera matrices
     float aspect = static_cast<float>(width_) / static_cast<float>(height_);
     Eigen::Matrix4f view = camera_.get_view_matrix();
@@ -298,9 +298,9 @@ void Renderer::render(const StateVector& state) {
         // Render table
         {
             // Table transformation: rotate by varphi_x and theta_y, translate by z_table
-            float varphi_x = static_cast<float>(state(state_index::VARPHI_X));
-            float theta_y = static_cast<float>(state(state_index::THETA_Y));
-            float z_table = static_cast<float>(state(state_index::Z_TABLE));
+            float varphi_x = static_cast<float>(table.phi);
+            float theta_y  = static_cast<float>(table.theta);
+            float z_table  = static_cast<float>(table.z_t);
 
             // Rotation around X axis
             Eigen::Matrix4f rot_x = Eigen::Matrix4f::Identity();
@@ -338,12 +338,12 @@ void Renderer::render(const StateVector& state) {
             // Ball position from state
             // Physics coords: X (horizontal), Y (horizontal), Z_BALL (vertical above table)
             // OpenGL coords: X (horizontal), Y (vertical/up), Z (horizontal, into screen)
-            float ball_x = static_cast<float>(state(state_index::X));
-            float ball_y = static_cast<float>(state(state_index::Y));
-            // Z_BALL is an absolute world-frame height (set by BallDynamics / contact snap).
-            // The table is rendered at Z_TABLE, and the ball rests at z_surface = z_t + r.
-            // Do NOT add Z_TABLE or ball_radius here — Z_BALL already encodes both.
-            float ball_z = static_cast<float>(state(state_index::Z_BALL));
+            float ball_x = static_cast<float>(ball.x);
+            float ball_y = static_cast<float>(ball.y);
+            // z_ball is an absolute world-frame height (set by BallDynamics / contact snap).
+            // The table is rendered at z_t, and the ball rests at z_surface = z_t + r.
+            // Do NOT add z_t or ball_radius here — z_ball already encodes both.
+            float ball_z = static_cast<float>(ball.z_ball);
 
 #ifdef __EMSCRIPTEN__
             static int log_counter = 0;

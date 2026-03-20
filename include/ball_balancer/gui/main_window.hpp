@@ -100,7 +100,8 @@ public:
      * Renders all UI panels. Call between begin_frame() and end_frame().
      */
     void render(
-        const StateVector& state,
+        const BallState& ball,
+        const TableState& table,
         PIDController& controller,
         StateEstimator& estimator,
         Renderer& renderer,
@@ -142,7 +143,7 @@ private:
      * @param state Current system state
      * @param renderer 3D renderer
      */
-    void render_viewport(const StateVector& state, Renderer& renderer);
+    void render_viewport(const BallState& ball, const TableState& table, Renderer& renderer);
 
     /**
      * @brief Setup default docking layout (first run only)
