@@ -305,6 +305,29 @@ void main_loop_iteration() {
                 cam.zoom(-zoom_speed);
             if (glfwGetKey(app->window_, GLFW_KEY_DOWN) == GLFW_PRESS)
                 cam.zoom( zoom_speed);
+
+            // ----------------------------------------------------------------
+            // Servo angle keyboard controls (hold SHIFT, Servo mode only)
+            // SHIFT+B/H : leg 0 alpha down/up
+            // SHIFT+N/J : leg 1 alpha down/up
+            // SHIFT+M/K : leg 2 alpha down/up
+            // ----------------------------------------------------------------
+            if (app->kinematics_mode_ == KinematicsMode::Servo) {
+                constexpr double servo_step = 1.0 * M_PI / 180.0;   // 1° per frame
+                auto& alpha = app->servo_cmd_.alpha;
+                if (glfwGetKey(app->window_, GLFW_KEY_B) == GLFW_PRESS)
+                    alpha[0] = std::clamp(alpha[0] - servo_step, 0.0, M_PI);
+                if (glfwGetKey(app->window_, GLFW_KEY_H) == GLFW_PRESS)
+                    alpha[0] = std::clamp(alpha[0] + servo_step, 0.0, M_PI);
+                if (glfwGetKey(app->window_, GLFW_KEY_N) == GLFW_PRESS)
+                    alpha[1] = std::clamp(alpha[1] - servo_step, 0.0, M_PI);
+                if (glfwGetKey(app->window_, GLFW_KEY_J) == GLFW_PRESS)
+                    alpha[1] = std::clamp(alpha[1] + servo_step, 0.0, M_PI);
+                if (glfwGetKey(app->window_, GLFW_KEY_M) == GLFW_PRESS)
+                    alpha[2] = std::clamp(alpha[2] - servo_step, 0.0, M_PI);
+                if (glfwGetKey(app->window_, GLFW_KEY_K) == GLFW_PRESS)
+                    alpha[2] = std::clamp(alpha[2] + servo_step, 0.0, M_PI);
+            }
         }
     }
 

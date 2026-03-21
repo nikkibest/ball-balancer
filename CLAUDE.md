@@ -185,6 +185,15 @@ Hold **SHIFT** + key to control camera without mouse:
 
 Mouse: left-drag to orbit, right-drag to pan, scroll to zoom.
 
+### Servo Angle Keyboard Controls (Servo mode only)
+Hold **SHIFT** + key to nudge servo commands by 1°/frame:
+
+| Key | Action |
+|-----|--------|
+| B / H | Leg 0 alpha down / up |
+| N / J | Leg 1 alpha down / up |
+| M / K | Leg 2 alpha down / up |
+
 ### Viewport Resize
 `glfwSetFramebufferSizeCallback` calls `renderer_->resize(w, h)` to keep
 `width_/height_` current. The resize callback is registered in `application.cpp`.
