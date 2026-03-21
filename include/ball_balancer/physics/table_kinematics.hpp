@@ -51,7 +51,7 @@ namespace ball_balancer {
  * Positive angle means the elbow is above the ground mounting point.
  */
 struct ServoAngles {
-    std::array<double, 3> alpha{45.0, 45.0, 45.0};
+    std::array<double, 3> alpha{M_PI / 4.0, M_PI / 4.0, M_PI / 4.0};  // 45° in radians
 };
 
 // ============================================================================
@@ -65,7 +65,7 @@ struct ServoAngles {
  *            radial plane. Used to compute T_i from E_i without re-solving FK.
  */
 struct ElbowAngles {
-    std::array<double, 3> beta{45.0, 45.0, 45.0};
+    std::array<double, 3> beta{M_PI / 4.0, M_PI / 4.0, M_PI / 4.0};  // 45° in radians
 };
 
 // ============================================================================
