@@ -328,6 +328,9 @@ void main_loop_iteration() {
         b.vz_ball = 0.0;
         app->simulator_->set_ball_state(b);
         app->estimator_->reset(b, t);
+        // Invalidate FK derivative history so the first sub-step doesn't use
+        // stale pose differences from before the pause.
+        app->fk_prev_valid_ = false;
     }
     app->prev_sim_state_ = sim_state;
 
@@ -355,6 +358,28 @@ void main_loop_iteration() {
                     true_table.phi   = fkResult->phi;
                     true_table.theta = fkResult->theta;
                     true_table.z_t   = fkResult->z_t;
+
+                    // Finite-difference table-state time derivatives so ball
+                    // dynamics receive correct angular velocity and acceleration.
+                    if (app->fk_prev_valid_) {
+                        const double invDt = 1.0 / physics_dt;
+                        const double phiDot   = (fkResult->phi   - app->prev_fk_pose_.phi)   * invDt;
+                        const double thetaDot = (fkResult->theta - app->prev_fk_pose_.theta) * invDt;
+                        const double ztDot    = (fkResult->z_t   - app->prev_fk_pose_.z_t)   * invDt;
+
+                        true_table.phi_dot   = phiDot;
+                        true_table.theta_dot = thetaDot;
+                        true_table.z_t_dot   = ztDot;
+
+                        true_table.phi_ddot   = (phiDot   - app->prev_fk_vel_.phi_dot)   * invDt;
+                        true_table.theta_ddot = (thetaDot - app->prev_fk_vel_.theta_dot) * invDt;
+                        true_table.z_t_ddot   = (ztDot    - app->prev_fk_vel_.z_t_dot)   * invDt;
+
+                        app->prev_fk_vel_ = { phiDot, thetaDot, ztDot };
+                    }
+                    app->prev_fk_pose_  = { fkResult->phi, fkResult->theta, fkResult->z_t };
+                    app->fk_prev_valid_ = true;
+
                     app->simulator_->set_table_state(true_table);
                     app->ik_failed_ = false;
                 } else {
@@ -507,6 +532,7 @@ void main_loop_iteration() {
         app->plotter_->clear();
         app->simulation_time_ = 0.0;
         app->accumulator_ = 0.0;
+        app->fk_prev_valid_ = false;
 
         // Reset frame timing state to prevent stale time deltas
         app->last_frame_time_ = std::chrono::high_resolution_clock::now();
@@ -538,10 +564,7 @@ void main_loop_iteration() {
     // Use tableAttachPointFromBeta when elbow angles are available (FK-consistent geometry);
     // fall back to tableAttachPoint from pose states otherwise (Pose mode).
     {
-        const double phi   = current_table.phi;
-        const double theta = current_table.theta;
-        const double z_t   = current_table.z_t;
-
+        
         std::array<std::array<std::array<float, 3>, 3>, 3> arm_pts;
         for (int i = 0; i < 3; ++i) {
             const auto& kin = app->kinematics_;
@@ -553,8 +576,11 @@ void main_loop_iteration() {
             std::array<double, 3> T;
             if (app->kinematics_mode_ == KinematicsMode::Servo) {
                 T = kin.tableAttachPointFromBeta(
-                        i, app->servo_angles_.alpha[i], app->elbow_angles_.beta[i]);
+                    i, app->servo_angles_.alpha[i], app->elbow_angles_.beta[i]);
             } else {
+                const double phi   = current_table.phi;
+                const double theta = current_table.theta;
+                const double z_t   = current_table.z_t;
                 T = kin.tableAttachPoint(i, phi, theta, z_t);
             }
             arm_pts[i][0] = {static_cast<float>(G[0]), static_cast<float>(G[1]), static_cast<float>(G[2])};

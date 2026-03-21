@@ -184,6 +184,20 @@ private:
 
     /// FK method used in Servo mode (selectable from GUI).
     FKMethod fk_method_{FKMethod::NewtonRaphson};
+
+    // -----------------------------------------------------------------------
+    // FK finite-difference history (Servo mode only)
+    // -----------------------------------------------------------------------
+
+    /// Pose snapshot from the previous FK step.
+    struct FKPose { double phi{0.0}, theta{0.0}, z_t{0.0}; };
+    /// Velocity snapshot from the previous FK step.
+    struct FKVel  { double phi_dot{0.0}, theta_dot{0.0}, z_t_dot{0.0}; };
+
+    FKPose prev_fk_pose_{};
+    FKVel  prev_fk_vel_{};
+    /// True once at least one FK step has been stored; gates derivative computation.
+    bool   fk_prev_valid_{false};
 };
 
 } // namespace ball_balancer

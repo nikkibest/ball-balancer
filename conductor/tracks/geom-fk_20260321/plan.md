@@ -138,7 +138,7 @@ into `TableState` before ball dynamics step.
 
 ### Tasks
 
-- [ ] Task 3.1: In `include/ball_balancer/core/application.hpp`, add two private
+- [x] Task 3.1: In `include/ball_balancer/core/application.hpp`, add two private
   members to `Application`:
   ```cpp
   struct FKPose { double phi{}, theta{}, z_t{}; };
@@ -148,7 +148,7 @@ into `TableState` before ball dynamics step.
   bool   fk_prev_valid_{false};
   ```
 
-- [ ] Task 3.2: In `application.cpp`, in the Servo-mode block inside the physics
+- [x] Task 3.2: In `application.cpp`, in the Servo-mode block inside the physics
   sub-step loop (around line 344), after successfully calling `forwardKinematics`:
   ```cpp
   if (fkResult && fk_prev_valid_) {
@@ -169,16 +169,16 @@ into `TableState` before ball dynamics step.
   ```
   Call `simulator_->set_table_state(true_table)` after this block.
 
-- [ ] Task 3.3: Reset `fk_prev_valid_ = false` whenever simulation is reset or
+- [x] Task 3.3: Reset `fk_prev_valid_ = false` whenever simulation is reset or
   paused, so the first step after resume doesn't use stale derivatives.
   Find the existing reset path in `application.cpp` and add the reset there.
 
 ### Verification
 
-- [ ] In Servo mode with a non-zero servo command, inspect ball trajectory —
+- [x] In Servo mode with a non-zero servo command, inspect ball trajectory —
   it should now curve due to correct `theta_dot`/`phi_dot` in friction/centripetal.
-- [ ] No NaN or inf in `phi_dot` etc. on first frame after reset.
-- [ ] Existing Pose mode is unaffected (no change to that branch).
+- [x] No NaN or inf in `phi_dot` etc. on first frame after reset.
+- [x] Existing Pose mode is unaffected (no change to that branch).
 
 ---
 
