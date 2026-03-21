@@ -344,7 +344,7 @@ void main_loop_iteration() {
                         t.theta = fkResult->theta;
                         t.z_t   = fkResult->z_t;
                         app->simulator_->set_table_state(t);
-                        app->fk_prev_valid_ = false;   // derivatives stale after a jump
+                        app->fk_prev_valid_ = false;
                     }
                 }
             }
