@@ -2,15 +2,21 @@
   "id": "geom-fk_20260321",
   "title": "Geometry-Based Forward Kinematics (β-solver)",
   "type": "feature",
-  "status": "pending",
+  "status": "complete",
   "created": "2026-03-21T00:00:00Z",
   "updated": "2026-03-21T00:00:00Z",
   "phases": {
     "total": 4,
-    "completed": 0
+    "completed": 4
   },
   "tasks": {
     "total": 16,
-    "completed": 0
-  }
+    "completed": 16
+  },
+  "commits": [
+    "90c18f3: feat(kinematics): add FKMethod::GeometryBased enum and stub declarations",
+    "8b52d7c: feat(kinematics): implement geometry-based β-solver FK",
+    "02a291a: feat(kinematics): inject FK-derived table velocity and acceleration in Servo mode",
+    "0824434: feat(gui): add Geometry β-solver to FK method selector; make it default"
+  ]
 }

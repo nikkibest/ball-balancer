@@ -3,7 +3,7 @@
 **Track ID:** geom-fk_20260321
 **Spec:** [spec.md](./spec.md)
 **Created:** 2026-03-21
-**Status:** [~] In Progress
+**Status:** [x] Complete
 
 ---
 
@@ -215,13 +215,13 @@ into `TableState` before ball dynamics step.
 
 ## Final Verification
 
-- [ ] All acceptance criteria from spec.md are met.
-- [ ] Desktop build: `cmake --build . -j$(nproc)` succeeds with zero warnings.
-- [ ] Application runs in Servo mode; ball dynamics look physically reasonable.
-- [ ] Symmetric servo input (`α₁=α₂=α₃`) → flat table (`φ≈0`, `θ≈0`) ✓.
-- [ ] Asymmetric input → table tilts in expected direction ✓.
-- [ ] Old FK methods still selectable and functional ✓.
-- [ ] No regressions in Pose mode.
+- [x] All acceptance criteria from spec.md are met.
+- [x] Desktop build: `cmake --build . -j$(nproc)` succeeds with zero warnings.
+- [x] Application runs in Servo mode; ball dynamics look physically reasonable.
+- [x] Symmetric servo input (`α₁=α₂=α₃`) → flat table (`φ≈0`, `θ≈0`) ✓.
+- [x] Asymmetric input → table tilts in expected direction ✓.
+- [x] Old FK methods still selectable and functional ✓.
+- [x] No regressions in Pose mode.
 
 ---
 
