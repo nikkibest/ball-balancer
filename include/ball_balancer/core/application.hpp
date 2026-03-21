@@ -183,7 +183,7 @@ private:
     bool ik_failed_{false};
 
     /// FK method used in Servo mode (selectable from GUI).
-    FKMethod fk_method_{FKMethod::NewtonRaphson};
+    FKMethod fk_method_{FKMethod::GeometryBased};
 
     // -----------------------------------------------------------------------
     // FK finite-difference history (Servo mode only)

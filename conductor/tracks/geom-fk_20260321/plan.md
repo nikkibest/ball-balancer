@@ -188,7 +188,7 @@ into `TableState` before ball dynamics step.
 
 ### Tasks
 
-- [ ] Task 4.1: In `src/gui/control_panel.cpp`, find the FK method radio button /
+- [x] Task 4.1: In `src/gui/control_panel.cpp`, find the FK method radio button /
   combo block (around line 593). Add a third option:
   ```cpp
   // Extend the existing int-based selector to 3 options
@@ -201,14 +201,14 @@ into `TableState` before ball dynamics step.
   ```
   Update the `fkInt` initialisation to handle the new value (`2`).
 
-- [ ] Task 4.2: Make `GeometryBased` the **default** `fk_method_` in
+- [x] Task 4.2: Make `GeometryBased` the **default** `fk_method_` in
   `Application` (change the member initialiser in `.hpp` or the constructor).
 
 ### Verification
 
-- [ ] GUI dropdown shows three options; selecting each switches the FK method.
-- [ ] `GeometryBased` is selected by default when application starts.
-- [ ] Switching between methods at runtime does not crash (β warm-start may
+- [x] GUI dropdown shows three options; selecting each switches the FK method.
+- [x] `GeometryBased` is selected by default when application starts.
+- [x] Switching between methods at runtime does not crash (β warm-start may
   briefly be stale — this is acceptable).
 
 ---

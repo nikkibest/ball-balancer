@@ -590,8 +590,10 @@ void ControlPanel::render_arm_mechanism(ArmStatus& arm_status) {
         ImGui::Spacing();
         ImGui::Text("FK Method:");
         ImGui::SameLine();
-        int fkInt = (arm_status.fk_method == FKMethod::YouTubeClosedForm) ? 1 : 0;
-        if (ImGui::RadioButton("Newton-Raphson##fk", fkInt == 0)) {
+        int fkInt = 0;
+        if (arm_status.fk_method == FKMethod::YouTubeClosedForm) fkInt = 1;
+        if (arm_status.fk_method == FKMethod::GeometryBased)     fkInt = 2;
+        if (ImGui::RadioButton("NR (pose)##fk", fkInt == 0)) {
             if (fkInt != 0) {
                 arm_status.fk_method = FKMethod::NewtonRaphson;
                 arm_status.fk_method_changed = true;
@@ -601,6 +603,13 @@ void ControlPanel::render_arm_mechanism(ArmStatus& arm_status) {
         if (ImGui::RadioButton("Closed-Form##fk", fkInt == 1)) {
             if (fkInt != 1) {
                 arm_status.fk_method = FKMethod::YouTubeClosedForm;
+                arm_status.fk_method_changed = true;
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Geometry β##fk", fkInt == 2)) {
+            if (fkInt != 2) {
+                arm_status.fk_method = FKMethod::GeometryBased;
                 arm_status.fk_method_changed = true;
             }
         }
