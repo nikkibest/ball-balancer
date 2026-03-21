@@ -55,6 +55,34 @@ struct ServoAngles {
 };
 
 // ============================================================================
+// ElbowAngles
+// ============================================================================
+
+/**
+ * @brief Upper-link angle triple for the three arms.
+ *
+ * beta[i] — upper-link angle βᵢ (rad), measured from horizontal in the arm's
+ *            radial plane. Used to compute T_i from E_i without re-solving FK.
+ */
+struct ElbowAngles {
+    std::array<double, 3> beta{0.0, 0.0, 0.0};
+};
+
+// ============================================================================
+// FKResult
+// ============================================================================
+
+/**
+ * @brief Result of a successful forward-kinematics solve.
+ */
+struct FKResult {
+    double phi{0.0};    ///< Table roll φ (rad)
+    double theta{0.0};  ///< Table pitch θ (rad)
+    double z_t{0.0};    ///< Table height (m)
+    ElbowAngles elbow;  ///< Upper-link angles βᵢ (rad), derived from the FK solution
+};
+
+// ============================================================================
 // FKMethod
 // ============================================================================
 
@@ -169,22 +197,18 @@ public:
      * @brief Compute table pose from servo angles.
      *
      * @param servos  Three servo angles αᵢ (rad).
+     * @param prev    Previous elbow angles for warm-starting Newton-Raphson.
+     *                Pass default-constructed ElbowAngles{} on first call.
      * @param method  FK algorithm: NewtonRaphson (default) or YouTubeClosedForm.
-     * @param phi0    Warm-start roll (rad).   Ignored for YouTubeClosedForm.
-     * @param theta0  Warm-start pitch (rad).  Ignored for YouTubeClosedForm.
-     * @param z0      Warm-start height (m).   Ignored for YouTubeClosedForm.
-     *                Pass a negative value to use arm_z_nominal automatically.
-     * @return { phi, theta, z_t } as a 3-element array, or nullopt on failure.
+     * @return FKResult with pose and derived elbow angles, or nullopt on failure.
      *         Failure means:
      *           NewtonRaphson    — did not converge within NR_MAX_ITER
      *           YouTubeClosedForm — negative discriminant (geometrically impossible)
      */
-    std::optional<std::array<double, 3>> forwardKinematics(
+    std::optional<FKResult> forwardKinematics(
         const ServoAngles& servos,
-        FKMethod           method = FKMethod::NewtonRaphson,
-        double             phi0   = 0.0,
-        double             theta0 = 0.0,
-        double             z0     = -1.0) const;
+        const ElbowAngles& prev   = ElbowAngles{},
+        FKMethod           method = FKMethod::NewtonRaphson) const;
 
     // -------------------------------------------------------------------------
     // Accessors
@@ -209,6 +233,20 @@ public:
      */
     std::array<double, 3> tableAttachPoint(
         int i, double phi, double theta, double z_t) const;
+
+    /**
+     * @brief Table attachment point Tᵢ derived from elbow geometry.
+     *
+     * Computes T_i = E_i + L2 * [cos(ψᵢ)·cos(β), sin(ψᵢ)·cos(β), sin(β)]
+     * where β is the upper-link angle from horizontal. Used in Servo mode for
+     * FK-consistent rendering without re-solving the full FK.
+     *
+     * @param i      Arm index (0, 1, 2)
+     * @param alpha  Servo angle αᵢ (rad)
+     * @param beta   Upper-link angle βᵢ (rad), from FK solve
+     */
+    std::array<double, 3> tableAttachPointFromBeta(
+        int i, double alpha, double beta) const;
 
     /**
      * @brief Elbow position Eᵢ in the inertial frame.

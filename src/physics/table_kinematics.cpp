@@ -83,24 +83,51 @@ std::optional<ServoAngles> TableKinematics::inverseKinematics(
 // Public — Forward Kinematics
 // ============================================================================
 
-std::optional<std::array<double, 3>> TableKinematics::forwardKinematics(
+std::optional<FKResult> TableKinematics::forwardKinematics(
     const ServoAngles& servos,
-    FKMethod           method,
-    double             phi0,
-    double             theta0,
-    double             z0) const
+    const ElbowAngles& prev,
+    FKMethod           method) const
 {
-    const double z_init = (z0 < 0.0) ? zNominal_ : z0;
+    std::optional<std::array<double, 3>> pose;
 
     switch (method) {
-        case FKMethod::NewtonRaphson:
-            return fkNewtonRaphson(servos, phi0, theta0, z_init);
-
+        case FKMethod::NewtonRaphson: {
+            // Warm-start: recover phi0/theta0/z0 by running a quick YouTube
+            // solve, or use zero if that fails.
+            double phi0 = 0.0, theta0 = 0.0, z0 = zNominal_;
+            if (auto yt = fkYouTube(servos)) {
+                phi0 = (*yt)[0]; theta0 = (*yt)[1]; z0 = (*yt)[2];
+            }
+            pose = fkNewtonRaphson(servos, phi0, theta0, z0);
+            break;
+        }
         case FKMethod::YouTubeClosedForm:
-            return fkYouTube(servos);
+            pose = fkYouTube(servos);
+            break;
     }
 
-    return std::nullopt;  // unreachable
+    if (!pose) return std::nullopt;
+
+    FKResult result;
+    result.phi   = (*pose)[0];
+    result.theta = (*pose)[1];
+    result.z_t   = (*pose)[2];
+
+    // Compute upper-link angles β_i from the solved T_i and E_i.
+    // β_i is the angle of (T_i − E_i) in the arm's radial plane from horizontal.
+    for (int i = 0; i < N_ARMS; ++i) {
+        const auto T = tableAttachPoint(i, result.phi, result.theta, result.z_t);
+        const auto E = elbowPosition(i, servos.alpha[i]);
+        const double dz = T[2] - E[2];
+        const double dx = T[0] - E[0];
+        const double dy = T[1] - E[1];
+        const double cPsi = std::cos(PSI[i]);
+        const double sPsi = std::sin(PSI[i]);
+        const double dr = dx * cPsi + dy * sPsi;  // radial component in arm plane
+        result.elbow.beta[i] = std::atan2(dz, dr);
+    }
+
+    return result;
 }
 
 // ============================================================================
@@ -132,6 +159,26 @@ std::array<double, 3> TableKinematics::tableAttachPoint(
         Rt_ * ( ct * cPsi + st * sp * sPsi),   // x: only cosψ col matters since sinψ col has sinθ·sinφ
         Rt_ * ( cp * sPsi),                     // y: 0·cosψ + cosφ·sinψ
         z_t + Rt_ * ( st * cPsi - ct * sp * sPsi),  // z: sinθ·cosψ − cosθ·sinφ·sinψ
+    };
+}
+
+std::array<double, 3> TableKinematics::tableAttachPointFromBeta(
+    int i, double alpha, double beta) const
+{
+    // E_i from alpha, then T_i = E_i + L2 * unit_vec(beta, psi_i)
+    // The upper link lies in the arm's radial plane (defined by ψ_i).
+    // β is measured from horizontal: β=0 → upper link horizontal outward,
+    //                                β>0 → upper link tilts upward.
+    const auto E = elbowPosition(i, alpha);
+    const double cPsi = std::cos(PSI[i]);
+    const double sPsi = std::sin(PSI[i]);
+    const double cb   = std::cos(beta);
+    const double sb   = std::sin(beta);
+
+    return {
+        E[0] + L2_ * cb * cPsi,
+        E[1] + L2_ * cb * sPsi,
+        E[2] + L2_ * sb,
     };
 }
 

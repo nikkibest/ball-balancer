@@ -349,7 +349,7 @@ void main_loop_iteration() {
                         (app->servo_cmd_.alpha[i] - app->servo_angles_.alpha[i]) / tau * physics_dt;
                 }
                 auto fkResult = app->kinematics_.forwardKinematics(
-                    app->servo_angles_, app->elbow_angles_);
+                    app->servo_angles_, app->elbow_angles_, app->fk_method_);
                 if (fkResult) {
                     app->elbow_angles_ = fkResult->elbow;
                     true_table.phi   = fkResult->phi;
