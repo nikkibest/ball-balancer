@@ -104,6 +104,9 @@ std::optional<FKResult> TableKinematics::forwardKinematics(
         case FKMethod::YouTubeClosedForm:
             pose = fkYouTube(servos);
             break;
+        case FKMethod::GeometryBased:
+            pose = fkGeometryBased(servos, prev);
+            break;
     }
 
     if (!pose) return std::nullopt;
@@ -176,8 +179,8 @@ std::array<double, 3> TableKinematics::tableAttachPointFromBeta(
     const double sb   = std::sin(beta);
 
     return {
-        E[0] + L2_ * cb * cPsi,
-        E[1] + L2_ * cb * sPsi,
+        E[0] - L2_ * cb * cPsi,
+        E[1] - L2_ * cb * sPsi,
         E[2] + L2_ * sb,
     };
 }
@@ -193,9 +196,9 @@ std::array<double, 3> TableKinematics::elbowPosition(int i, double alpha) const
     const double sa   = std::sin(alpha);
     const double cPsi = std::cos(PSI[i]);
     const double sPsi = std::sin(PSI[i]);
-    const double rEff = Rg_ + L1_ * sa;
+    const double rEff = Rg_ + L1_ * ca;
 
-    return { rEff * cPsi, rEff * sPsi, -L1_ * ca };
+    return { rEff * cPsi, rEff * sPsi, L1_ * sa };
 }
 
 std::array<double, 3> TableKinematics::groundPoint(int i) const
@@ -338,6 +341,36 @@ std::optional<std::array<double, 3>> TableKinematics::fkYouTube(
     const double ph   = -(z[1] - z[2]) / (std::sqrt(3.0) * Rt_);
 
     return {{ ph, thet, z_t }};
+}
+
+// ============================================================================
+// Private — FK: Geometry-based β-solver
+// ============================================================================
+
+std::optional<std::array<double, 3>> TableKinematics::fkGeometryBased(
+    const ServoAngles& servos,
+    const ElbowAngles& prevBeta) const
+{
+    // Stub — implementation added in Phase 2 (Task 2.1–2.4)
+    return std::nullopt;
+}
+
+std::array<double, 3> TableKinematics::betaResiduals(
+    const std::array<double, 3>& /*beta*/,
+    const std::array<double, 3>& /*A*/,
+    const std::array<double, 3>& /*B*/) const
+{
+    // Stub — implementation added in Phase 2 (Task 2.2)
+    return {};
+}
+
+std::array<std::array<double, 3>, 3> TableKinematics::betaJacobian(
+    const std::array<double, 3>& /*beta*/,
+    const std::array<double, 3>& /*A*/,
+    const std::array<double, 3>& /*B*/) const
+{
+    // Stub — implementation added in Phase 2 (Task 2.3)
+    return {};
 }
 
 // ============================================================================

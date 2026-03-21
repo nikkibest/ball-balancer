@@ -9,4 +9,6 @@
 
 | [x] | state-split_20260320 | Split StateVector into BallState and TableState | 2026-03-20 | 2026-03-20 |
 
+| [~] | geom-fk_20260321 | Geometry-Based Forward Kinematics (β-solver) | 2026-03-21 | 2026-03-21 |
+
 <!-- Tracks registered by /conductor:new-track -->

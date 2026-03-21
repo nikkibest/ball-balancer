@@ -51,7 +51,7 @@ namespace ball_balancer {
  * Positive angle means the elbow is above the ground mounting point.
  */
 struct ServoAngles {
-    std::array<double, 3> alpha{0.0, 0.0, 0.0};
+    std::array<double, 3> alpha{45.0, 45.0, 45.0};
 };
 
 // ============================================================================
@@ -65,7 +65,7 @@ struct ServoAngles {
  *            radial plane. Used to compute T_i from E_i without re-solving FK.
  */
 struct ElbowAngles {
-    std::array<double, 3> beta{0.0, 0.0, 0.0};
+    std::array<double, 3> beta{45.0, 45.0, 45.0};
 };
 
 // ============================================================================
@@ -103,6 +103,21 @@ enum class FKMethod {
      * linear formula; accuracy degrades slightly at large tilt angles (> ~15°).
      */
     YouTubeClosedForm,
+
+    /**
+     * Geometry-based β-solver: Newton-Raphson on the three rigid-body chord-length
+     * constraint equations to solve for the upper-link angles β₁,β₂,β₃ directly.
+     *
+     * f₀: ρ₀²+ρ₁²+ρ₀ρ₁+(h₀−h₁)²−3Rt² = 0
+     * f₁: ρ₀²+ρ₂²+ρ₀ρ₂+(h₀−h₂)²−3Rt² = 0
+     * f₂: ρ₁²+ρ₂²+ρ₁ρ₂+(h₁−h₂)²−3Rt² = 0
+     *
+     * where ρᵢ = Aᵢ − L2·cosβᵢ  and  hᵢ = Bᵢ + L2·sinβᵢ.
+     *
+     * Pose is then extracted via exact closed-form arcsin formulae.
+     * Warm-started from the previous ElbowAngles; converges in ≤5 iterations.
+     */
+    GeometryBased,
 };
 
 // ============================================================================
@@ -300,6 +315,47 @@ private:
      */
     std::optional<std::array<double, 3>> fkYouTube(
         const ServoAngles& servos) const;
+
+    /**
+     * @brief FK by Newton-Raphson on the three β-angle chord-length constraints.
+     *
+     * Solves for β₀, β₁, β₂ (upper-link angles) such that the three table
+     * attachment points satisfy ‖Tᵢ − Tⱼ‖² = 3Rt² for all pairs.
+     * Warm-started from prevBeta for fast convergence.
+     *
+     * @param servos   Current servo angles αᵢ.
+     * @param prevBeta Upper-link angles from the previous timestep (warm-start).
+     * @return Array {φ, θ, z_t} derived from solved β, or nullopt on failure.
+     */
+    std::optional<std::array<double, 3>> fkGeometryBased(
+        const ServoAngles& servos,
+        const ElbowAngles& prevBeta) const;
+
+    /**
+     * @brief Residuals of the β chord-length constraint system.
+     *
+     * @param beta  Current β estimate [β₀, β₁, β₂].
+     * @param A     Per-arm radial elbow offsets: Aᵢ = Rg + L1·cos(αᵢ).
+     * @param B     Per-arm elbow heights:         Bᵢ = L1·sin(αᵢ).
+     * @return Residual vector [f₀, f₁, f₂].
+     */
+    std::array<double, 3> betaResiduals(
+        const std::array<double, 3>& beta,
+        const std::array<double, 3>& A,
+        const std::array<double, 3>& B) const;
+
+    /**
+     * @brief Jacobian of the β residuals: J[i][j] = ∂fᵢ/∂βⱼ.
+     *
+     * @param beta  Current β estimate [β₀, β₁, β₂].
+     * @param A     Per-arm radial elbow offsets.
+     * @param B     Per-arm elbow heights.
+     * @return 3×3 Jacobian matrix.
+     */
+    std::array<std::array<double, 3>, 3> betaJacobian(
+        const std::array<double, 3>& beta,
+        const std::array<double, 3>& A,
+        const std::array<double, 3>& B) const;
 
     // -------------------------------------------------------------------------
     // Newton-Raphson residual and Jacobian
