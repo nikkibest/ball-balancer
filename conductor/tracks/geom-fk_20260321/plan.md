@@ -61,7 +61,7 @@ Finally expose the new method in the GUI dropdown.
 
 ### Tasks
 
-- [ ] Task 2.1: Implement `fkGeometryBased` in `table_kinematics.cpp`.
+- [x] Task 2.1: Implement `fkGeometryBased` in `table_kinematics.cpp`.
 
   **Pre-compute per-arm constants** (in code's α convention):
   ```cpp
@@ -79,7 +79,7 @@ Finally expose the new method in the GUI dropdown.
   ```
   using `betaResiduals`, `betaJacobian`, and existing `solve3x3`.
 
-- [ ] Task 2.2: Implement `betaResiduals`:
+- [x] Task 2.2: Implement `betaResiduals`:
   ```
   ρᵢ = Aᵢ − L2·cos(βᵢ)
   hᵢ = Bᵢ + L2·sin(βᵢ)
@@ -88,7 +88,7 @@ Finally expose the new method in the GUI dropdown.
   f₂ = ρ₁²+ρ₂²+ρ₁ρ₂+(h₁−h₂)²−3Rt²
   ```
 
-- [ ] Task 2.3: Implement `betaJacobian`. Let `sᵢ = L2·sin(βᵢ)` (=`∂ρᵢ/∂βᵢ` with
+- [x] Task 2.3: Implement `betaJacobian`. Let `sᵢ = L2·sin(βᵢ)` (=`∂ρᵢ/∂βᵢ` with
   sign flip) and `cᵢ = L2·cos(βᵢ)` (=`∂hᵢ/∂βᵢ`). Expanding `∂f₀/∂β₀`:
   ```
   ∂f₀/∂β₀ = 2ρ₀·(L2 sin β₀) + ρ₁·(L2 sin β₀) + 2(h₀−h₁)·(L2 cos β₀)
@@ -100,7 +100,7 @@ Finally expose the new method in the GUI dropdown.
   Fill the full 3×3 similarly. Off-diagonal zeros appear because f₂ involves
   only (β₁,β₂), etc.
 
-- [ ] Task 2.4: After NR convergence, compute heights and extract pose:
+- [x] Task 2.4: After NR convergence, compute heights and extract pose:
   ```cpp
   const double h[3] = { B[0]+L2_*sin(beta[0]),
                          B[1]+L2_*sin(beta[1]),
@@ -114,19 +114,19 @@ Finally expose the new method in the GUI dropdown.
   ```
   Return `{{ phi, theta, z_t }}`.
 
-- [ ] Task 2.5: In `forwardKinematics()`, after `fkGeometryBased` returns a valid
+- [x] Task 2.5: In `forwardKinematics()`, after `fkGeometryBased` returns a valid
   pose, set `result.elbow.beta[i]` directly from the solved β (no need to
   back-compute from `atan2` since we already have them). Store solved β in
   a local variable and pass back through `FKResult.elbow`.
 
 ### Verification
 
-- [ ] With all servos at identical α, `φ=0`, `θ=0`, `z_t = B + L2·sin(β)` where
+- [x] With all servos at identical α, `φ=0`, `θ=0`, `z_t = B + L2·sin(β)` where
   `A − L2·cos(β) = Rt` — verify numerically in a debug print or small test.
-- [ ] With servos slightly asymmetric (e.g., α₀ increased by 0.1 rad), the
+- [x] With servos slightly asymmetric (e.g., α₀ increased by 0.1 rad), the
   resulting `θ` is non-zero and in the expected direction.
-- [ ] NR converges in ≤ 5 iterations when warm-started from the previous β.
-- [ ] Desktop build: application runs in Servo mode with `GeometryBased` selected,
+- [x] NR converges in ≤ 5 iterations when warm-started from the previous β.
+- [x] Desktop build: application runs in Servo mode with `GeometryBased` selected,
   no crash, arm rendering looks correct.
 
 ---

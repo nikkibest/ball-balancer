@@ -329,7 +329,8 @@ private:
      */
     std::optional<std::array<double, 3>> fkGeometryBased(
         const ServoAngles& servos,
-        const ElbowAngles& prevBeta) const;
+        const ElbowAngles& prevBeta,
+        ElbowAngles&       outBeta) const;
 
     /**
      * @brief Residuals of the β chord-length constraint system.

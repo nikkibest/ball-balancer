@@ -89,6 +89,9 @@ std::optional<FKResult> TableKinematics::forwardKinematics(
     FKMethod           method) const
 {
     std::optional<std::array<double, 3>> pose;
+    // For GeometryBased we have the exact solved β directly — store them here
+    // to avoid a round-trip atan2 back-computation.
+    std::optional<ElbowAngles> solvedBeta;
 
     switch (method) {
         case FKMethod::NewtonRaphson: {
@@ -104,9 +107,12 @@ std::optional<FKResult> TableKinematics::forwardKinematics(
         case FKMethod::YouTubeClosedForm:
             pose = fkYouTube(servos);
             break;
-        case FKMethod::GeometryBased:
-            pose = fkGeometryBased(servos, prev);
+        case FKMethod::GeometryBased: {
+            ElbowAngles outBeta;
+            pose = fkGeometryBased(servos, prev, outBeta);
+            if (pose) solvedBeta = outBeta;
             break;
+        }
     }
 
     if (!pose) return std::nullopt;
@@ -116,18 +122,22 @@ std::optional<FKResult> TableKinematics::forwardKinematics(
     result.theta = (*pose)[1];
     result.z_t   = (*pose)[2];
 
-    // Compute upper-link angles β_i from the solved T_i and E_i.
-    // β_i is the angle of (T_i − E_i) in the arm's radial plane from horizontal.
-    for (int i = 0; i < N_ARMS; ++i) {
-        const auto T = tableAttachPoint(i, result.phi, result.theta, result.z_t);
-        const auto E = elbowPosition(i, servos.alpha[i]);
-        const double dz = T[2] - E[2];
-        const double dx = T[0] - E[0];
-        const double dy = T[1] - E[1];
-        const double cPsi = std::cos(PSI[i]);
-        const double sPsi = std::sin(PSI[i]);
-        const double dr = dx * cPsi + dy * sPsi;  // radial component in arm plane
-        result.elbow.beta[i] = std::atan2(dz, dr);
+    if (solvedBeta) {
+        // GeometryBased: use the exact NR-solved β values directly.
+        result.elbow = *solvedBeta;
+    } else {
+        // Other methods: back-compute β from the geometry of (T_i − E_i).
+        for (int i = 0; i < N_ARMS; ++i) {
+            const auto T = tableAttachPoint(i, result.phi, result.theta, result.z_t);
+            const auto E = elbowPosition(i, servos.alpha[i]);
+            const double dz   = T[2] - E[2];
+            const double dx   = T[0] - E[0];
+            const double dy   = T[1] - E[1];
+            const double cPsi = std::cos(PSI[i]);
+            const double sPsi = std::sin(PSI[i]);
+            const double dr   = dx * cPsi + dy * sPsi;
+            result.elbow.beta[i] = std::atan2(dz, dr);
+        }
     }
 
     return result;
@@ -349,28 +359,156 @@ std::optional<std::array<double, 3>> TableKinematics::fkYouTube(
 
 std::optional<std::array<double, 3>> TableKinematics::fkGeometryBased(
     const ServoAngles& servos,
-    const ElbowAngles& prevBeta) const
+    const ElbowAngles& prevBeta,
+    ElbowAngles&       outBeta) const
 {
-    // Stub — implementation added in Phase 2 (Task 2.1–2.4)
-    return std::nullopt;
+    // Pre-compute per-arm constants from servo angles.
+    // α is measured from straight-down: cos(α) = horizontal reach, sin(α) = vertical.
+    //   Aᵢ = Rg + L1·cos(αᵢ)   — radial position of elbow from centre
+    //   Bᵢ = L1·sin(αᵢ)         — height of elbow above ground
+    std::array<double, 3> A{}, B{};
+    for (int i = 0; i < N_ARMS; ++i) {
+        A[i] = Rg_ + L1_ * std::cos(servos.alpha[i]);
+        B[i] = L1_ * std::sin(servos.alpha[i]);
+    }
+
+    // Warm-start β from the previous timestep's elbow angles.
+    std::array<double, 3> beta = prevBeta.beta;
+
+    // Newton-Raphson: β^(k+1) = β^(k) − J⁻¹·f(β^(k))
+    for (int iter = 0; iter < NR_MAX_ITER; ++iter) {
+        const auto f = betaResiduals(beta, A, B);
+
+        const double fMax = std::max({std::abs(f[0]), std::abs(f[1]), std::abs(f[2])});
+        if (fMax < NR_TOL)
+            break;
+
+        const auto  J    = betaJacobian(beta, A, B);
+        const auto  negF = std::array<double, 3>{ -f[0], -f[1], -f[2] };
+        const auto  dBeta = solve3x3(J, negF);
+
+        if (!dBeta) return std::nullopt;   // singular Jacobian — give up
+
+        beta[0] += (*dBeta)[0];
+        beta[1] += (*dBeta)[1];
+        beta[2] += (*dBeta)[2];
+    }
+
+    // Compute table attachment heights from solved β.
+    //   hᵢ = Bᵢ + L2·sin(βᵢ)
+    const double h0 = B[0] + L2_ * std::sin(beta[0]);
+    const double h1 = B[1] + L2_ * std::sin(beta[1]);
+    const double h2 = B[2] + L2_ * std::sin(beta[2]);
+
+    // Extract table pose from the three heights (exact, not small-angle).
+    //
+    // From the derivation (Own notes on Table Dynamics Equations):
+    //   z_t = (h₀+h₁+h₂) / 3
+    //   φ   = arcsin( (h₁−h₂) / (√3·Rt) )
+    //   θ   = arcsin( (h₁+h₂−2h₀) / (3·Rt·cosφ) )
+    //
+    // Sign convention: the renderer applies Ry(−θ)·Rx(−φ), so we negate both
+    // angles to stay consistent with fkYouTube and the rest of the codebase.
+    const double z_t = (h0 + h1 + h2) / 3.0;
+
+    const double sinPhi = std::clamp((h1 - h2) / (std::sqrt(3.0) * Rt_), -1.0, 1.0);
+    const double phi    = -std::asin(sinPhi);
+
+    const double cosPhi  = std::cos(phi);
+    const double sinTheta = std::clamp(
+        (h1 + h2 - 2.0 * h0) / (3.0 * Rt_ * cosPhi), -1.0, 1.0);
+    const double theta = -std::asin(sinTheta);
+
+    // Export the solved β values so the caller can skip the atan2 back-computation.
+    outBeta.beta = beta;
+
+    return {{ phi, theta, z_t }};
 }
 
 std::array<double, 3> TableKinematics::betaResiduals(
-    const std::array<double, 3>& /*beta*/,
-    const std::array<double, 3>& /*A*/,
-    const std::array<double, 3>& /*B*/) const
+    const std::array<double, 3>& beta,
+    const std::array<double, 3>& A,
+    const std::array<double, 3>& B) const
 {
-    // Stub — implementation added in Phase 2 (Task 2.2)
-    return {};
+    // ρᵢ = Aᵢ − L2·cos(βᵢ)   — net radial reach of table point Tᵢ from centre
+    // hᵢ = Bᵢ + L2·sin(βᵢ)   — height of table point Tᵢ
+    //
+    // Chord-length constraints (all arm pairs separated by 2π/3,
+    // so cos(Δψ) = −1/2 → the cross term becomes +ρᵢρⱼ):
+    //   fₖ = ρᵢ² + ρⱼ² + ρᵢρⱼ + (hᵢ−hⱼ)² − 3Rt² = 0
+    const double rho0 = A[0] - L2_ * std::cos(beta[0]);
+    const double rho1 = A[1] - L2_ * std::cos(beta[1]);
+    const double rho2 = A[2] - L2_ * std::cos(beta[2]);
+
+    const double h0 = B[0] + L2_ * std::sin(beta[0]);
+    const double h1 = B[1] + L2_ * std::sin(beta[1]);
+    const double h2 = B[2] + L2_ * std::sin(beta[2]);
+
+    const double Dt2 = 3.0 * Rt_ * Rt_;
+
+    const double dh01 = h0 - h1;
+    const double dh02 = h0 - h2;
+    const double dh12 = h1 - h2;
+
+    return {
+        rho0*rho0 + rho1*rho1 + rho0*rho1 + dh01*dh01 - Dt2,
+        rho0*rho0 + rho2*rho2 + rho0*rho2 + dh02*dh02 - Dt2,
+        rho1*rho1 + rho2*rho2 + rho1*rho2 + dh12*dh12 - Dt2,
+    };
 }
 
 std::array<std::array<double, 3>, 3> TableKinematics::betaJacobian(
-    const std::array<double, 3>& /*beta*/,
-    const std::array<double, 3>& /*A*/,
-    const std::array<double, 3>& /*B*/) const
+    const std::array<double, 3>& beta,
+    const std::array<double, 3>& A,
+    const std::array<double, 3>& B) const
 {
-    // Stub — implementation added in Phase 2 (Task 2.3)
-    return {};
+    // Re-compute ρᵢ, hᵢ and the partial derivatives:
+    //   ∂ρᵢ/∂βᵢ =  L2·sin(βᵢ)
+    //   ∂hᵢ/∂βᵢ =  L2·cos(βᵢ)
+    const double rho0 = A[0] - L2_ * std::cos(beta[0]);
+    const double rho1 = A[1] - L2_ * std::cos(beta[1]);
+    const double rho2 = A[2] - L2_ * std::cos(beta[2]);
+
+    const double h0 = B[0] + L2_ * std::sin(beta[0]);
+    const double h1 = B[1] + L2_ * std::sin(beta[1]);
+    const double h2 = B[2] + L2_ * std::sin(beta[2]);
+
+    // drho_i/dbeta_i = L2*sin(beta_i), dh_i/dbeta_i = L2*cos(beta_i)
+    const double dRho0 = L2_ * std::sin(beta[0]);
+    const double dRho1 = L2_ * std::sin(beta[1]);
+    const double dRho2 = L2_ * std::sin(beta[2]);
+
+    const double dH0 = L2_ * std::cos(beta[0]);
+    const double dH1 = L2_ * std::cos(beta[1]);
+    const double dH2 = L2_ * std::cos(beta[2]);
+
+    const double dh01 = h0 - h1;
+    const double dh02 = h0 - h2;
+    const double dh12 = h1 - h2;
+
+    // J[row][col] = ∂f_row / ∂β_col
+    //
+    // f₀ = ρ₀²+ρ₁²+ρ₀ρ₁+(h₀−h₁)²−3Rt²  involves β₀, β₁
+    // f₁ = ρ₀²+ρ₂²+ρ₀ρ₂+(h₀−h₂)²−3Rt²  involves β₀, β₂
+    // f₂ = ρ₁²+ρ₂²+ρ₁ρ₂+(h₁−h₂)²−3Rt²  involves β₁, β₂
+    std::array<std::array<double, 3>, 3> J{};
+
+    // Row 0: ∂f₀/∂βⱼ
+    J[0][0] = (2.0*rho0 + rho1)*dRho0 + 2.0*dh01*dH0;   // ∂f₀/∂β₀
+    J[0][1] = (2.0*rho1 + rho0)*dRho1 - 2.0*dh01*dH1;   // ∂f₀/∂β₁
+    J[0][2] = 0.0;                                         // ∂f₀/∂β₂
+
+    // Row 1: ∂f₁/∂βⱼ
+    J[1][0] = (2.0*rho0 + rho2)*dRho0 + 2.0*dh02*dH0;   // ∂f₁/∂β₀
+    J[1][1] = 0.0;                                         // ∂f₁/∂β₁
+    J[1][2] = (2.0*rho2 + rho0)*dRho2 - 2.0*dh02*dH2;   // ∂f₁/∂β₂
+
+    // Row 2: ∂f₂/∂βⱼ
+    J[2][0] = 0.0;                                         // ∂f₂/∂β₀
+    J[2][1] = (2.0*rho1 + rho2)*dRho1 + 2.0*dh12*dH1;   // ∂f₂/∂β₁
+    J[2][2] = (2.0*rho2 + rho1)*dRho2 - 2.0*dh12*dH2;   // ∂f₂/∂β₂
+
+    return J;
 }
 
 // ============================================================================
