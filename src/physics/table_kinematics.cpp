@@ -376,12 +376,15 @@ std::optional<std::array<double, 3>> TableKinematics::fkGeometryBased(
     std::array<double, 3> beta = prevBeta.beta;
 
     // Newton-Raphson: β^(k+1) = β^(k) − J⁻¹·f(β^(k))
+    bool converged = false;
     for (int iter = 0; iter < NR_MAX_ITER; ++iter) {
         const auto f = betaResiduals(beta, A, B);
 
         const double fMax = std::max({std::abs(f[0]), std::abs(f[1]), std::abs(f[2])});
-        if (fMax < NR_TOL)
+        if (fMax < NR_TOL) {
+            converged = true;
             break;
+        }
 
         const auto  J    = betaJacobian(beta, A, B);
         const auto  negF = std::array<double, 3>{ -f[0], -f[1], -f[2] };
@@ -392,7 +395,15 @@ std::optional<std::array<double, 3>> TableKinematics::fkGeometryBased(
         beta[0] += (*dBeta)[0];
         beta[1] += (*dBeta)[1];
         beta[2] += (*dBeta)[2];
+
+        // Clamp β into [0, π] after each step to stay on the physical branch
+        // (upper link above horizontal, table attachment above elbow).
+        for (double& b : beta) {
+            b = std::clamp(b, 0.0, M_PI);
+        }
     }
+
+    if (!converged) return std::nullopt;
 
     // Compute table attachment heights from solved β.
     //   hᵢ = Bᵢ + L2·sin(βᵢ)

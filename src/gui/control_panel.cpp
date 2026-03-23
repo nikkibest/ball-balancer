@@ -449,11 +449,22 @@ bool ControlPanel::render_state_controls(ArmStatus& arm_status) {
     // Enabled: sim off (all free), or sim running + Servo mode
     ImGui::TextUnformatted("Servo Angles (deg)");
     if (pose_mode && sim_running) {ImGui::BeginDisabled();}
+
+    // Compute feasible α range: upper link must be able to reach the table
+    // attachment circle (radius Rt) for some β ∈ [0,π].
+    // Condition: |Rg + L1·cos(α) - Rt| ≤ L2
+    //   cos(α) ∈ [(Rt-L2-Rg)/L1, (Rt+L2-Rg)/L1] ∩ [0,1]
+    // acos is decreasing, so: α_min = acos(cosHi), α_max = acos(cosLo)
+    const double cosHi      = std::clamp((params_.arm_Rt + params_.arm_L2 - params_.arm_Rg) / params_.arm_L1, 0.0, 1.0);
+    const double cosLo      = std::clamp((params_.arm_Rt - params_.arm_L2 - params_.arm_Rg) / params_.arm_L1, 0.0, 1.0);
+    const float  alphaMinDeg = static_cast<float>(std::acos(cosHi) * 180.0 / M_PI);
+    const float  alphaMaxDeg = static_cast<float>(std::acos(cosLo) * 180.0 / M_PI);
+
     for (int i = 0; i < 3; ++i) {
         float deg = static_cast<float>(arm_status.servo_cmd.alpha[i] * 180.0 / M_PI);
         char label[32];
         snprintf(label, sizeof(label), "alpha_%d##sc_srv", i);
-        if (ImGui::SliderFloat(label, &deg, 0.0f, 180.0f, "%.1f")) {
+        if (ImGui::SliderFloat(label, &deg, alphaMinDeg, alphaMaxDeg, "%.1f")) {
             arm_status.servo_cmd.alpha[i] = static_cast<double>(deg) * M_PI / 180.0;
             arm_status.cmd_changed = true;
             if (!sim_running) {
@@ -475,7 +486,7 @@ bool ControlPanel::render_state_controls(ArmStatus& arm_status) {
         float deg = static_cast<float>(arm_status.elbow_angles.beta[i] * 180.0 / M_PI);
         char label[32];
         snprintf(label, sizeof(label), "elbow_%d##sc_elb", i);
-        if (ImGui::SliderFloat(label, &deg, 0.0f, 180.0f, "%.1f")) {
+        if (ImGui::SliderFloat(label, &deg, 0.0f, 90.0f, "%.1f")) {
             arm_status.elbow_angles.beta[i] = static_cast<double>(deg) * M_PI / 180.0;
             arm_status.cmd_changed = true;
             if (!sim_running) {

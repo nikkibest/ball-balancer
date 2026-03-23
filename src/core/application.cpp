@@ -314,20 +314,25 @@ void main_loop_iteration() {
             // ----------------------------------------------------------------
             if (app->kinematics_mode_ == KinematicsMode::Servo) {
                 constexpr double servo_step = 1.0 * M_PI / 180.0;   // 1° per frame
+                // Feasible α range: |Rg + L1·cos(α) - Rt| ≤ L2
+                const double cosHi   = std::clamp((app->params_.arm_Rt + app->params_.arm_L2 - app->params_.arm_Rg) / app->params_.arm_L1, 0.0, 1.0);
+                const double cosLo   = std::clamp((app->params_.arm_Rt - app->params_.arm_L2 - app->params_.arm_Rg) / app->params_.arm_L1, 0.0, 1.0);
+                const double alphaMin = std::acos(cosHi);
+                const double alphaMax = std::acos(cosLo);
                 auto& alpha = app->servo_cmd_.alpha;
                 bool servo_key_pressed = false;
                 if (glfwGetKey(app->window_, GLFW_KEY_B) == GLFW_PRESS)
-                    { alpha[0] = std::clamp(alpha[0] - servo_step, 0.0, M_PI); servo_key_pressed = true; }
+                    { alpha[0] = std::clamp(alpha[0] - servo_step, alphaMin, alphaMax); servo_key_pressed = true; }
                 if (glfwGetKey(app->window_, GLFW_KEY_H) == GLFW_PRESS)
-                    { alpha[0] = std::clamp(alpha[0] + servo_step, 0.0, M_PI); servo_key_pressed = true; }
+                    { alpha[0] = std::clamp(alpha[0] + servo_step, alphaMin, alphaMax); servo_key_pressed = true; }
                 if (glfwGetKey(app->window_, GLFW_KEY_N) == GLFW_PRESS)
-                    { alpha[1] = std::clamp(alpha[1] - servo_step, 0.0, M_PI); servo_key_pressed = true; }
+                    { alpha[1] = std::clamp(alpha[1] - servo_step, alphaMin, alphaMax); servo_key_pressed = true; }
                 if (glfwGetKey(app->window_, GLFW_KEY_J) == GLFW_PRESS)
-                    { alpha[1] = std::clamp(alpha[1] + servo_step, 0.0, M_PI); servo_key_pressed = true; }
+                    { alpha[1] = std::clamp(alpha[1] + servo_step, alphaMin, alphaMax); servo_key_pressed = true; }
                 if (glfwGetKey(app->window_, GLFW_KEY_M) == GLFW_PRESS)
-                    { alpha[2] = std::clamp(alpha[2] - servo_step, 0.0, M_PI); servo_key_pressed = true; }
+                    { alpha[2] = std::clamp(alpha[2] - servo_step, alphaMin, alphaMax); servo_key_pressed = true; }
                 if (glfwGetKey(app->window_, GLFW_KEY_K) == GLFW_PRESS)
-                    { alpha[2] = std::clamp(alpha[2] + servo_step, 0.0, M_PI); servo_key_pressed = true; }
+                    { alpha[2] = std::clamp(alpha[2] + servo_step, alphaMin, alphaMax); servo_key_pressed = true; }
 
                 // When paused, snap servo_angles_ to cmd and run FK so the
                 // renderer immediately reflects the new pose (mirrors slider behaviour).
@@ -335,17 +340,6 @@ void main_loop_iteration() {
                                     != SimulationState::Running;
                 if (servo_key_pressed && paused) {
                     app->servo_angles_ = app->servo_cmd_;
-                    auto fkResult = app->kinematics_.forwardKinematics(
-                        app->servo_angles_, app->elbow_angles_, app->fk_method_);
-                    if (fkResult) {
-                        app->elbow_angles_ = fkResult->elbow;
-                        TableState t = app->simulator_->get_table_state();
-                        t.phi   = fkResult->phi;
-                        t.theta = fkResult->theta;
-                        t.z_t   = fkResult->z_t;
-                        app->simulator_->set_table_state(t);
-                        app->fk_prev_valid_ = false;
-                    }
                 }
             }
         }
