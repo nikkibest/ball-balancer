@@ -1,0 +1,301 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="570" height="530" viewBox="-20 -20 570 530"
+     font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif">
+
+  <defs>
+    <!-- ── Glow filters ── -->
+    <filter id="glow-blue" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-red" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-axis" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-dot" x="-100%" y="-100%" width="400%" height="400%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- ── Background ── -->
+    <radialGradient id="bg-grad" cx="50%" cy="50%" r="60%">
+      <stop offset="0%"   stop-color="#1a1f2e"/>
+      <stop offset="100%" stop-color="#0d1017"/>
+    </radialGradient>
+
+    <!-- ── Arrowheads ── -->
+    <marker id="arr-axis" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L10,3.5z" fill="#66aaff"/>
+    </marker>
+    <marker id="arr-b" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L10,3.5z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arr-r" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L10,3.5z" fill="#f87171"/>
+    </marker>
+
+    <!-- ── CSS animations ── -->
+    <style>
+      /* ── Draw-on: stroke-dashoffset from full length → 0 ── */
+      /* Spokes: length 145 */
+      .spoke {
+        stroke-dasharray: 145 145;
+        stroke-dashoffset: 145;
+        animation: draw-spoke 0.7s ease-out forwards;
+      }
+      .spoke-2 { animation-delay: 0.15s; }
+      .spoke-3 { animation-delay: 0.30s; }
+
+      /* Radial arrows: ~62 px */
+      .arr-r1 { stroke-dasharray: 60  60;  stroke-dashoffset: 60;  animation: draw-vec 0.45s ease-out 0.7s forwards; }
+      .arr-r2 { stroke-dasharray: 64  64;  stroke-dashoffset: 64;  animation: draw-vec 0.45s ease-out 0.85s forwards; }
+      .arr-r3 { stroke-dasharray: 64  64;  stroke-dashoffset: 64;  animation: draw-vec 0.45s ease-out 1.00s forwards; }
+
+      /* Tangential arrows: ~63 px */
+      .arr-t1 { stroke-dasharray: 60  60;  stroke-dashoffset: 60;  animation: draw-vec 0.45s ease-out 1.15s forwards; }
+      .arr-t2 { stroke-dasharray: 65  65;  stroke-dashoffset: 65;  animation: draw-vec 0.45s ease-out 1.30s forwards; }
+      .arr-t3 { stroke-dasharray: 65  65;  stroke-dashoffset: 65;  animation: draw-vec 0.45s ease-out 1.45s forwards; }
+
+      @keyframes draw-spoke {
+        to { stroke-dashoffset: 0; }
+      }
+      @keyframes draw-vec {
+        to { stroke-dashoffset: 0; }
+      }
+
+      /* ── Dot pop-in ── */
+      .dot-g { transform-origin: center; transform-box: fill-box;
+               animation: pop 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+               transform: scale(0); opacity: 0; }
+      .dot-g1 { animation-delay: 0.65s; }
+      .dot-g2 { animation-delay: 0.80s; }
+      .dot-g3 { animation-delay: 0.95s; }
+      @keyframes pop {
+        to { transform: scale(1); opacity: 1; }
+      }
+
+      /* ── Labels fade in ── */
+      .lbl { opacity: 0; animation: fade 0.4s ease forwards; }
+      .lbl-g1  { animation-delay: 0.75s; }
+      .lbl-g2  { animation-delay: 0.90s; }
+      .lbl-g3  { animation-delay: 1.05s; }
+      .lbl-r1  { animation-delay: 1.15s; }
+      .lbl-r2  { animation-delay: 1.30s; }
+      .lbl-r3  { animation-delay: 1.45s; }
+      .lbl-t1  { animation-delay: 1.60s; }
+      .lbl-t2  { animation-delay: 1.75s; }
+      .lbl-t3  { animation-delay: 1.90s; }
+      .lbl-psi1 { animation-delay: 0.80s; }
+      .lbl-psi2 { animation-delay: 1.10s; }
+      .lbl-psi3 { animation-delay: 1.25s; }
+      @keyframes fade {
+        to { opacity: 1; }
+      }
+
+      /* ── Glow pulse on vectors (loops after draw) ── */
+      .pulse-b {
+        animation:
+          draw-vec    0.45s ease-out var(--d,0.7s) forwards,
+          pulse-blue  2.4s  ease-in-out calc(var(--d,0.7s) + 0.45s) infinite;
+      }
+      .pulse-r {
+        animation:
+          draw-vec    0.45s ease-out var(--d,1.15s) forwards,
+          pulse-red   2.4s  ease-in-out calc(var(--d,1.15s) + 0.45s) infinite;
+      }
+      @keyframes pulse-blue {
+        0%,100% { opacity: 0.28; }
+        50%     { opacity: 0.60; }
+      }
+      @keyframes pulse-red {
+        0%,100% { opacity: 0.22; }
+        50%     { opacity: 0.52; }
+      }
+
+      /* ── Rotating dashed ring ── */
+      .ring-spin {
+        transform-origin: 255px 275px;
+        animation: spin 18s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      /* ── Halo breathe ── */
+      .halo {
+        animation: breathe 3s ease-in-out infinite;
+      }
+      @keyframes breathe {
+        0%,100% { opacity: 0.12; r: 14; }
+        50%     { opacity: 0.30; r: 18; }
+      }
+    </style>
+  </defs>
+
+  <!-- ═══ Background ═══ -->
+  <rect x="-20" y="-20" width="570" height="530" fill="url(#bg-grad)" rx="10"/>
+
+  <!-- ═══ Grid ═══ -->
+  <g stroke="#ffffff07" stroke-width="1">
+    <line x1="-20" y1="-20" x2="-20" y2="510"/><line x1="20"  y1="-20" x2="20"  y2="510"/>
+    <line x1="60"  y1="-20" x2="60"  y2="510"/><line x1="100" y1="-20" x2="100" y2="510"/>
+    <line x1="140" y1="-20" x2="140" y2="510"/><line x1="180" y1="-20" x2="180" y2="510"/>
+    <line x1="220" y1="-20" x2="220" y2="510"/><line x1="260" y1="-20" x2="260" y2="510"/>
+    <line x1="300" y1="-20" x2="300" y2="510"/><line x1="340" y1="-20" x2="340" y2="510"/>
+    <line x1="380" y1="-20" x2="380" y2="510"/><line x1="420" y1="-20" x2="420" y2="510"/>
+    <line x1="460" y1="-20" x2="460" y2="510"/><line x1="500" y1="-20" x2="500" y2="510"/>
+    <line x1="-20" y1="20"  x2="550" y2="20"/> <line x1="-20" y1="60"  x2="550" y2="60"/>
+    <line x1="-20" y1="100" x2="550" y2="100"/><line x1="-20" y1="140" x2="550" y2="140"/>
+    <line x1="-20" y1="180" x2="550" y2="180"/><line x1="-20" y1="220" x2="550" y2="220"/>
+    <line x1="-20" y1="260" x2="550" y2="260"/><line x1="-20" y1="300" x2="550" y2="300"/>
+    <line x1="-20" y1="340" x2="550" y2="340"/><line x1="-20" y1="380" x2="550" y2="380"/>
+    <line x1="-20" y1="420" x2="550" y2="420"/><line x1="-20" y1="460" x2="550" y2="460"/>
+    <line x1="-20" y1="500" x2="550" y2="500"/>
+  </g>
+
+  <!-- ═══ Title ═══ -->
+  <text x="265" y="18" text-anchor="middle" font-size="13" fill="#94a3b8" letter-spacing="0.8">
+    TOP VIEW — GROUND MOUNTING CIRCLE
+  </text>
+
+  <!-- ═══ Axes ═══ -->
+  <g filter="url(#glow-axis)" stroke="#66aaff" stroke-width="1.2" opacity="0.45" fill="none">
+    <line x1="50" y1="275" x2="510" y2="275"/>
+    <line x1="255" y1="470" x2="255" y2="40"/>
+  </g>
+  <line x1="50"  y1="275" x2="504" y2="275" stroke="#66aaff" stroke-width="1.8" marker-end="url(#arr-axis)"/>
+  <line x1="255" y1="470" x2="255" y2="44"  stroke="#66aaff" stroke-width="1.8" marker-end="url(#arr-axis)"/>
+  <text x="512" y="280" font-size="16" fill="#93c5fd" font-style="italic">X</text>
+  <text x="259" y="38"  font-size="16" fill="#93c5fd" font-style="italic">Y</text>
+
+  <!-- Origin -->
+  <circle cx="255" cy="275" r="10" fill="#38bdf818" filter="url(#glow-dot)"/>
+  <circle cx="255" cy="275" r="3.5" fill="#66aaff"/>
+  <text x="235" y="294" font-size="13.5" fill="#94a3b8" font-style="italic">O</text>
+
+  <!-- ═══ Ground circle — spinning dashed ring ═══ -->
+  <circle cx="255" cy="275" r="145" fill="none" stroke="#38bdf8" stroke-width="5"
+          stroke-dasharray="8,6" opacity="0.08" class="ring-spin"/>
+  <circle cx="255" cy="275" r="145" fill="none" stroke="#38bdf8" stroke-width="1.5"
+          stroke-dasharray="8,6" opacity="0.50" class="ring-spin"/>
+  <line x1="255" y1="275" x2="336" y2="173" stroke="#2d3f55" stroke-width="0.9"/>
+  <text x="339" y="168" font-size="12.5" fill="#3d5068" font-style="italic">R&#x2092;</text>
+
+  <!-- ═══ SPOKES — draw-on ═══ -->
+  <line x1="255" y1="275" x2="400"   y2="275"   stroke="#38bdf8" stroke-width="1" class="spoke"/>
+  <line x1="255" y1="275" x2="182.5" y2="149.4"  stroke="#38bdf8" stroke-width="1" class="spoke spoke-2"/>
+  <line x1="255" y1="275" x2="182.5" y2="400.6"  stroke="#38bdf8" stroke-width="1" class="spoke spoke-3"/>
+
+  <!-- ═══════════════════════════════════════
+       ARM 1  ψ₁=0°   G=(400,275)
+  ═══════════════════════════════════════ -->
+  <!-- halo -->
+  <circle cx="400" cy="275" r="14" fill="#38bdf8" opacity="0.12" class="halo" filter="url(#glow-dot)"/>
+  <!-- dot pop -->
+  <circle cx="400" cy="275" r="6.5" fill="#38bdf8" class="dot-g dot-g1"/>
+  <text x="409" y="267" font-size="14.5" fill="#93c5fd" font-style="italic" class="lbl lbl-g1">G&#x2081;</text>
+
+  <!-- r̂₁ glow + draw -->
+  <line x1="400" y1="275" x2="460" y2="275" stroke="#38bdf8" stroke-width="5"
+        stroke-dasharray="60 60" stroke-dashoffset="60" opacity="0.28"
+        filter="url(#glow-blue)" style="--d:0.70s" class="pulse-b"/>
+  <line x1="400" y1="275" x2="460" y2="275" stroke="#38bdf8" stroke-width="2.5"
+        stroke-dasharray="60 60" stroke-dashoffset="60" class="arr-r1" marker-end="url(#arr-b)"/>
+  <text x="472" y="271" font-size="14" fill="#38bdf8" font-style="italic" class="lbl lbl-r1">r&#x0302;&#x2081;</text>
+
+  <!-- t̂₁ glow + draw -->
+  <line x1="400" y1="275" x2="400" y2="215" stroke="#f87171" stroke-width="5"
+        stroke-dasharray="60 60" stroke-dashoffset="60" opacity="0.22"
+        filter="url(#glow-red)" style="--d:1.15s" class="pulse-r"/>
+  <line x1="400" y1="275" x2="400" y2="215" stroke="#f87171" stroke-width="2.5"
+        stroke-dasharray="60 60" stroke-dashoffset="60" class="arr-t1" marker-end="url(#arr-r)"/>
+  <text x="407" y="207" font-size="14" fill="#f87171" font-style="italic" class="lbl lbl-t1">t&#x0302;&#x2081;</text>
+
+  <!-- right-angle box -->
+  <rect x="400" y="267" width="8" height="8" fill="none" stroke="#475569" stroke-width="1.1"/>
+  <text x="270" y="266" font-size="11.5" fill="#4a5e78" font-style="italic" class="lbl lbl-psi1">&#x03C8;&#x2081;=0°</text>
+
+  <!-- ═══════════════════════════════════════
+       ARM 2  ψ₂=120°  G=(182.5,149.4)
+  ═══════════════════════════════════════ -->
+  <circle cx="182.5" cy="149.4" r="14" fill="#38bdf8" opacity="0.12" class="halo" filter="url(#glow-dot)"/>
+  <circle cx="182.5" cy="149.4" r="6.5" fill="#38bdf8" class="dot-g dot-g2"/>
+  <text x="157" y="137" font-size="14.5" fill="#93c5fd" font-style="italic" class="lbl lbl-g2">G&#x2082;</text>
+
+  <!-- r̂₂ -->
+  <line x1="182.5" y1="149.4" x2="151.5" y2="93.5" stroke="#38bdf8" stroke-width="5"
+        stroke-dasharray="64 64" stroke-dashoffset="64" opacity="0.28"
+        filter="url(#glow-blue)" style="--d:0.85s" class="pulse-b"/>
+  <line x1="182.5" y1="149.4" x2="151.5" y2="93.5" stroke="#38bdf8" stroke-width="2.5"
+        stroke-dasharray="64 64" stroke-dashoffset="64" class="arr-r2" marker-end="url(#arr-b)"/>
+  <text x="129" y="84" font-size="14" fill="#38bdf8" font-style="italic" class="lbl lbl-r2">r&#x0302;&#x2082;</text>
+
+  <!-- t̂₂ -->
+  <line x1="182.5" y1="149.4" x2="126.6" y2="183.4" stroke="#f87171" stroke-width="5"
+        stroke-dasharray="65 65" stroke-dashoffset="65" opacity="0.22"
+        filter="url(#glow-red)" style="--d:1.30s" class="pulse-r"/>
+  <line x1="182.5" y1="149.4" x2="126.6" y2="183.4" stroke="#f87171" stroke-width="2.5"
+        stroke-dasharray="65 65" stroke-dashoffset="65" class="arr-t2" marker-end="url(#arr-r)"/>
+  <text x="96" y="191" font-size="14" fill="#f87171" font-style="italic" class="lbl lbl-t2">t&#x0302;&#x2082;</text>
+
+  <!-- ψ₂ arc -->
+  <path d="M 310,275 A 55,55 0 0,0 227.5,227.7"
+        fill="none" stroke="#3d5068" stroke-width="1.1" stroke-dasharray="3,3"/>
+  <text x="316" y="234" font-size="11.5" fill="#4a5e78" font-style="italic" class="lbl lbl-psi2">&#x03C8;&#x2082;=120°</text>
+
+  <!-- ═══════════════════════════════════════
+       ARM 3  ψ₃=240°  G=(182.5,400.6)
+  ═══════════════════════════════════════ -->
+  <circle cx="182.5" cy="400.6" r="14" fill="#38bdf8" opacity="0.12" class="halo" filter="url(#glow-dot)"/>
+  <circle cx="182.5" cy="400.6" r="6.5" fill="#38bdf8" class="dot-g dot-g3"/>
+  <text x="157" y="418" font-size="14.5" fill="#93c5fd" font-style="italic" class="lbl lbl-g3">G&#x2083;</text>
+
+  <!-- r̂₃ -->
+  <line x1="182.5" y1="400.6" x2="151.5" y2="456.5" stroke="#38bdf8" stroke-width="5"
+        stroke-dasharray="64 64" stroke-dashoffset="64" opacity="0.28"
+        filter="url(#glow-blue)" style="--d:1.00s" class="pulse-b"/>
+  <line x1="182.5" y1="400.6" x2="151.5" y2="456.5" stroke="#38bdf8" stroke-width="2.5"
+        stroke-dasharray="64 64" stroke-dashoffset="64" class="arr-r3" marker-end="url(#arr-b)"/>
+  <text x="129" y="473" font-size="14" fill="#38bdf8" font-style="italic" class="lbl lbl-r3">r&#x0302;&#x2083;</text>
+
+  <!-- t̂₃ -->
+  <line x1="182.5" y1="400.6" x2="238.4" y2="433.6" stroke="#f87171" stroke-width="5"
+        stroke-dasharray="65 65" stroke-dashoffset="65" opacity="0.22"
+        filter="url(#glow-red)" style="--d:1.45s" class="pulse-r"/>
+  <line x1="182.5" y1="400.6" x2="238.4" y2="433.6" stroke="#f87171" stroke-width="2.5"
+        stroke-dasharray="65 65" stroke-dashoffset="65" class="arr-t3" marker-end="url(#arr-r)"/>
+  <text x="237" y="451" font-size="14" fill="#f87171" font-style="italic" class="lbl lbl-t3">t&#x0302;&#x2083;</text>
+
+  <!-- ψ₃ arc -->
+  <path d="M 310,275 A 55,55 0 1,0 227.5,322.3"
+        fill="none" stroke="#3d5068" stroke-width="1.1" stroke-dasharray="3,3"/>
+  <text x="316" y="322" font-size="11.5" fill="#4a5e78" font-style="italic" class="lbl lbl-psi3">&#x03C8;&#x2083;=240°</text>
+
+  <!-- ═══ Legend ═══ -->
+  <g transform="translate(362,350)">
+    <rect x="0" y="0" width="172" height="96" rx="6"
+          fill="#0c1220" stroke="#2d3f55" stroke-width="1.1"/>
+    <!-- blue / radial -->
+    <line x1="12" y1="24" x2="44" y2="24" stroke="#38bdf8" stroke-width="2.5"
+          marker-end="url(#arr-b)" filter="url(#glow-blue)"/>
+    <text x="50" y="28" font-size="12" fill="#38bdf8" font-style="italic">r&#x0302;&#x1D62; — radial (outward)</text>
+    <!-- red / tangential -->
+    <line x1="12" y1="52" x2="44" y2="52" stroke="#f87171" stroke-width="2.5"
+          marker-end="url(#arr-r)" filter="url(#glow-red)"/>
+    <text x="50" y="56" font-size="12" fill="#f87171" font-style="italic">t&#x0302;&#x1D62; — tangential (CCW)</text>
+    <!-- cyan dot / ground point -->
+    <circle cx="24" cy="76" r="5.5" fill="#38bdf8"/>
+    <text x="34" y="80" font-size="12" fill="#93c5fd" font-style="italic">G&#x1D62; — ground point</text>
+  </g>
+
+  <!-- ═══ Footer ═══ -->
+  <text x="265" y="492" text-anchor="middle" font-size="12.5" fill="#7a9bbf" font-style="italic">
+    t&#x0302;&#x1D62; = &#x1D7A3;&#x302; &#xD7; r&#x0302;&#x1D62;&#x2002;&#x2002;&#x2002;
+    &#x03C8;&#x1D62; = 2&#x03C0;(i&#x2212;1)/3&#x2002;&#x2002;&#x2002;
+    i &#x2208; {1, 2, 3}
+  </text>
+
+</svg>

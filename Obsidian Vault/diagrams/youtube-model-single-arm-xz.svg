@@ -1,0 +1,274 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 420" width="560" height="420">
+  <defs>
+    <!-- Background gradient -->
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%"   stop-color="#1a1f2e"/>
+      <stop offset="100%" stop-color="#0d1017"/>
+    </radialGradient>
+
+    <!-- Glow filters -->
+    <filter id="glow-blue" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-axis" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-dot" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-green" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-red" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Arrowhead markers -->
+    <marker id="arrow-axis" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#66aaff"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#38bdf8"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4ade80"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#f87171"/>
+    </marker>
+
+    <!-- CSS Animations -->
+    <style>
+      @keyframes drawL2 {
+        from { stroke-dashoffset: 207; }
+        to   { stroke-dashoffset: 0; }
+      }
+      @keyframes drawL3 {
+        from { stroke-dashoffset: 120; }
+        to   { stroke-dashoffset: 0; }
+      }
+      @keyframes drawHoriz {
+        from { stroke-dashoffset: 197; }
+        to   { stroke-dashoffset: 0; }
+      }
+      @keyframes drawVert {
+        from { stroke-dashoffset: 65; }
+        to   { stroke-dashoffset: 0; }
+      }
+      @keyframes drawAxis {
+        from { stroke-dashoffset: 200; }
+        to   { stroke-dashoffset: 0; }
+      }
+      @keyframes popIn {
+        0%   { transform: scale(0); opacity: 0; }
+        70%  { transform: scale(1.3); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+      @keyframes breathe {
+        0%, 100% { opacity: 0.35; }
+        50%      { opacity: 0.65; }
+      }
+      @keyframes pulseGlow {
+        0%, 100% { opacity: 0.25; }
+        50%      { opacity: 0.55; }
+      }
+
+      .l3-line  { stroke-dasharray: 120; animation: drawL3  0.5s ease-out 0.3s forwards; opacity: 0; }
+      .l2-line  { stroke-dasharray: 207; animation: drawL2  0.7s ease-out 0.9s forwards; opacity: 0; }
+      .l2-glow  { stroke-dasharray: 207; animation: drawL2  0.7s ease-out 0.9s forwards; opacity: 0; }
+      .horiz-dash { stroke-dasharray: 6 5; animation: fadeIn 0.4s ease-out 1.7s forwards; opacity: 0; }
+      .vert-dash  { stroke-dasharray: 6 5; animation: fadeIn 0.4s ease-out 2.0s forwards; opacity: 0; }
+      .ax-line  { stroke-dasharray: 200; animation: drawAxis 0.5s ease-out 0.05s forwards; opacity: 0; }
+      .motor-dot { transform-origin: 310px 270px; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s forwards; opacity: 0; }
+      .ref-dot   { transform-origin: 190px 270px; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.6s forwards; opacity: 0; }
+      .p-dot     { transform-origin: 113.4px 205.7px; animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) 1.7s forwards; opacity: 0; }
+      .halo      { animation: breathe 3s ease-in-out infinite; }
+      .lbl       { animation: fadeIn 0.3s ease-out 2.2s forwards; opacity: 0; }
+      .lbl-early { animation: fadeIn 0.3s ease-out 0.5s forwards; opacity: 0; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="560" height="420" rx="10" fill="url(#bg)"/>
+
+  <!-- Subtle grid -->
+  <g stroke="#ffffff07" stroke-width="1">
+    <line x1="0" y1="40" x2="560" y2="40"/>
+    <line x1="0" y1="80" x2="560" y2="80"/>
+    <line x1="0" y1="120" x2="560" y2="120"/>
+    <line x1="0" y1="160" x2="560" y2="160"/>
+    <line x1="0" y1="200" x2="560" y2="200"/>
+    <line x1="0" y1="240" x2="560" y2="240"/>
+    <line x1="0" y1="280" x2="560" y2="280"/>
+    <line x1="0" y1="320" x2="560" y2="320"/>
+    <line x1="0" y1="360" x2="560" y2="360"/>
+    <line x1="0" y1="400" x2="560" y2="400"/>
+    <line x1="40" y1="0" x2="40" y2="420"/>
+    <line x1="80" y1="0" x2="80" y2="420"/>
+    <line x1="120" y1="0" x2="120" y2="420"/>
+    <line x1="160" y1="0" x2="160" y2="420"/>
+    <line x1="200" y1="0" x2="200" y2="420"/>
+    <line x1="240" y1="0" x2="240" y2="420"/>
+    <line x1="280" y1="0" x2="280" y2="420"/>
+    <line x1="320" y1="0" x2="320" y2="420"/>
+    <line x1="360" y1="0" x2="360" y2="420"/>
+    <line x1="400" y1="0" x2="400" y2="420"/>
+    <line x1="440" y1="0" x2="440" y2="420"/>
+    <line x1="480" y1="0" x2="480" y2="420"/>
+    <line x1="520" y1="0" x2="520" y2="420"/>
+  </g>
+
+  <!-- Title -->
+  <text x="280" y="28" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="14" fill="#94a3b8">YouTube Model — Single Arm Geometry (XZ-Plane)</text>
+
+  <!-- ── Coordinate Axes ── -->
+  <!-- Z axis glow -->
+  <line x1="370" y1="330" x2="370" y2="168" stroke="#66aaff" stroke-width="5"
+        stroke-opacity="0.25" filter="url(#glow-axis)" class="ax-line"/>
+  <!-- Z axis crisp -->
+  <line x1="370" y1="330" x2="370" y2="172" stroke="#66aaff" stroke-width="1.5"
+        marker-end="url(#arrow-axis)" class="ax-line"/>
+  <!-- X axis glow (points LEFT) -->
+  <line x1="388" y1="270" x2="88" y2="270" stroke="#66aaff" stroke-width="5"
+        stroke-opacity="0.25" filter="url(#glow-axis)" class="ax-line"/>
+  <!-- X axis crisp -->
+  <line x1="388" y1="270" x2="92" y2="270" stroke="#66aaff" stroke-width="1.5"
+        marker-end="url(#arrow-axis)" class="ax-line"/>
+
+  <!-- Axis labels -->
+  <text x="370" y="160" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="16" fill="#93c5fd" class="lbl-early">z</text>
+  <text x="80" y="266" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="16" fill="#93c5fd" class="lbl-early">x</text>
+
+  <!-- ── L3 reference line (from motor pivot leftward to L3 point) ── -->
+  <!-- Glow layer -->
+  <line x1="310" y1="270" x2="190" y2="270" stroke="#38bdf8" stroke-width="5"
+        stroke-opacity="0.3" filter="url(#glow-blue)" class="l3-line"/>
+  <!-- Crisp line -->
+  <line x1="310" y1="270" x2="190" y2="270" stroke="#38bdf8" stroke-width="2"
+        class="l3-line"/>
+
+  <!-- ── Upper link L2 (from motor pivot to P) ── -->
+  <!-- Glow layer -->
+  <line x1="310" y1="270" x2="113.4" y2="205.7" stroke="#38bdf8" stroke-width="6"
+        stroke-opacity="0.3" filter="url(#glow-blue)" class="l2-glow"/>
+  <!-- Crisp line -->
+  <line x1="310" y1="270" x2="113.4" y2="205.7" stroke="#38bdf8" stroke-width="2.5"
+        class="l2-line"/>
+
+  <!-- ── Dashed component lines ── -->
+  <!-- Horizontal dashed: motor to foot (L2·cosθ) -->
+  <line x1="310" y1="270" x2="113.4" y2="270" stroke="#f87171" stroke-width="1.5"
+        class="horiz-dash"/>
+  <!-- Vertical dashed: foot to P (L2·sinθ) -->
+  <line x1="113.4" y1="270" x2="113.4" y2="205.7" stroke="#4ade80" stroke-width="1.5"
+        class="vert-dash"/>
+
+  <!-- Right-angle box at foot (113.4, 270) -->
+  <path d="M 121.4,270 L 121.4,262 L 113.4,262" stroke="#6a8aaa" stroke-width="1"
+        fill="none" class="lbl"/>
+
+  <!-- ── Angle arc at motor pivot ── -->
+  <!-- Arc from horizontal leftward (272,270) sweeping CCW to (280.9, 245.6) -->
+  <!-- SVG arc: x-axis=0, large-arc=0, sweep=0 (CCW in math = sweep=0 in SVG since Y-flipped)  -->
+  <!-- Actually: going from left direction upward in SVG = decreasing y = sweep-flag=0 -->
+  <path d="M 272,270 A 38,38 0 0,0 280.9,245.6"
+        stroke="#fbbf24" stroke-width="1.5" fill="none" class="lbl"/>
+
+  <!-- ── Dot halos ── -->
+  <circle cx="310" cy="270" r="14" fill="#38bdf8" fill-opacity="0" stroke="#38bdf8"
+          stroke-opacity="0.2" stroke-width="1" class="halo"/>
+  <circle cx="190" cy="270" r="11" fill="#38bdf8" fill-opacity="0" stroke="#38bdf8"
+          stroke-opacity="0.2" stroke-width="1" class="halo"/>
+  <circle cx="113.4" cy="205.7" r="13" fill="#4ade80" fill-opacity="0" stroke="#4ade80"
+          stroke-opacity="0.25" stroke-width="1" class="halo"/>
+
+  <!-- ── Dots ── -->
+  <!-- Motor pivot (filled magenta like in video) -->
+  <circle cx="310" cy="270" r="7" fill="#e879f9" class="motor-dot"/>
+  <circle cx="310" cy="270" r="7" fill="none" stroke="#f0abfc" stroke-width="1"
+          filter="url(#glow-dot)" class="motor-dot"/>
+
+  <!-- L3 reference point (filled dark) -->
+  <circle cx="190" cy="270" r="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"
+          class="ref-dot"/>
+
+  <!-- Ball joint P (filled purple/violet like in video) -->
+  <circle cx="113.4" cy="205.7" r="7" fill="#818cf8" class="p-dot"/>
+  <circle cx="113.4" cy="205.7" r="7" fill="none" stroke="#a5b4fc" stroke-width="1"
+          filter="url(#glow-dot)" class="p-dot"/>
+
+  <!-- ── Labels ── -->
+  <!-- θ label -->
+  <text x="251" y="255" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="15" fill="#fbbf24" class="lbl">θ</text>
+
+  <!-- L2 label (along the link, offset perpendicularly) -->
+  <text x="222" y="222" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="14" fill="#38bdf8" class="lbl">L₂</text>
+
+  <!-- L3 label (below the horizontal segment) -->
+  <text x="250" y="292" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="14" fill="#38bdf8" class="lbl-early">L₃</text>
+
+  <!-- L2·cosθ label (below horizontal dashed) -->
+  <text x="212" y="296" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="13" fill="#f87171" class="lbl">L₂ cos θ</text>
+
+  <!-- L2·sinθ label (right of vertical dashed) -->
+  <text x="145" y="242" text-anchor="start" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="13" fill="#4ade80" class="lbl">L₂ sin θ</text>
+
+  <!-- P label -->
+  <text x="96" y="200" text-anchor="end" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="15" fill="#a5b4fc" class="lbl">P</text>
+
+  <!-- Motor label -->
+  <text x="328" y="265" text-anchor="start" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="12" fill="#f0abfc" class="lbl-early">motor</text>
+  <text x="328" y="280" text-anchor="start" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="12" fill="#f0abfc" class="lbl-early">pivot</text>
+
+  <!-- coordinate origin note -->
+  <text x="310" y="310" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="11" fill="#475569" class="lbl-early">(0, 0)</text>
+
+  <!-- P coordinates note -->
+  <text x="94" y="360" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="12" fill="#a5b4fc" class="lbl">P = (L₃ + L₂ cos θ,  L₂ sin θ)</text>
+
+  <!-- Legend box -->
+  <rect x="390" y="140" width="155" height="105" rx="5" fill="#0c1220" stroke="#2d3f55" stroke-width="1"/>
+  <text x="398" y="158" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="11" fill="#94a3b8">Legend</text>
+  <line x1="398" y1="170" x2="418" y2="170" stroke="#e879f9" stroke-width="2"/>
+  <text x="424" y="174" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="11" fill="#e879f9">motor pivot</text>
+  <line x1="398" y1="186" x2="418" y2="186" stroke="#38bdf8" stroke-width="2"/>
+  <text x="424" y="190" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="11" fill="#38bdf8">link / L₃ offset</text>
+  <line x1="398" y1="202" x2="418" y2="202" stroke="#f87171" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="424" y="206" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="11" fill="#f87171">L₂ cos θ</text>
+  <line x1="398" y1="218" x2="418" y2="218" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <text x="424" y="222" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="11" fill="#4ade80">L₂ sin θ</text>
+  <circle cx="408" cy="233" r="4" fill="#818cf8"/>
+  <text x="424" y="237" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="11" fill="#a5b4fc">ball joint P</text>
+
+  <!-- Footer formula -->
+  <text x="280" y="398" text-anchor="middle" font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif"
+        font-size="12" fill="#7a9bbf">x = L₃ + L₂ cos θ   ·   z = L₂ sin θ   ·   θ = atan2(z, x − L₃)</text>
+</svg>

@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="490" viewBox="-20 -20 520 490"
+     font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif" font-size="15">
+
+  <!-- ══ Defs ══ -->
+  <defs>
+    <marker id="arr"       markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#222"/></marker>
+    <marker id="arr-blue"  markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#1a6fb5"/></marker>
+    <marker id="arr-red"   markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3z" fill="#c0392b"/></marker>
+  </defs>
+
+  <!-- Background -->
+  <rect x="-20" y="-20" width="520" height="490" fill="#fafafa" rx="6"/>
+
+  <!-- Title -->
+  <text x="240" y="16" text-anchor="middle" font-size="13" fill="#555" font-style="italic">
+    Top view — ground mounting circle, arm positions, unit vectors
+  </text>
+
+  <!-- ══ Axes (origin O at SVG 240,260) ══ -->
+  <g stroke="#222" stroke-width="1.5" fill="none" marker-end="url(#arr)">
+    <line x1="55"  y1="260" x2="440" y2="260"/> <!-- X -->
+    <line x1="240" y1="440" x2="240" y2="38"/>  <!-- Y -->
+  </g>
+  <text x="448" y="264" font-size="16" fill="#222" font-style="italic">X</text>
+  <text x="244" y="34"  font-size="16" fill="#222" font-style="italic">Y</text>
+  <text x="221" y="278" font-size="14" fill="#444" font-style="italic">O</text>
+  <circle cx="240" cy="260" r="3.5" fill="#222"/>
+
+  <!-- Ground mounting circle  R_g = 130 px, dashed -->
+  <circle cx="240" cy="260" r="130" fill="none" stroke="#bbb" stroke-width="1.3" stroke-dasharray="6,4"/>
+  <!-- R_g label on circle -->
+  <text x="336" y="148" font-size="13" fill="#999" font-style="italic">R&#x2092;</text>
+  <line x1="240" y1="260" x2="332" y2="168" stroke="#bbb" stroke-width="0.8"/>
+
+  <!-- ══════════════════════════════════════════════════════
+       Computed arm positions (O = 240,260; R = 130):
+         G1: ψ=0°   → (370, 260)
+         G2: ψ=120° → (175, 147.4)
+         G3: ψ=240° → (175, 372.6)
+       Radial (r̂ᵢ) tip 60 px along outward direction in SVG.
+       Tangential (t̂ᵢ): rotate r̂ by CCW 90° in math space
+         → in SVG (y-flipped): rotate r̂_SVG by CW 90°
+         t̂_SVG = (r̂y_SVG, −r̂x_SVG)
+  ═══════════════════════════════════════════════════════ -->
+
+  <!-- ── Arm 1  ψ=0°  G=(370,260) ── -->
+  <!--   r̂₁_SVG = (1,0)   →  tip = (430,260)  -->
+  <!--   t̂₁_SVG = (0,−1)  →  tip = (370,200)  [−Y in SVG = +Y in math] -->
+  <g id="arm1">
+    <!-- spoke from O -->
+    <line x1="240" y1="260" x2="370" y2="260" stroke="#1a6fb5" stroke-width="0.9" stroke-dasharray="4,3"/>
+    <!-- G1 dot -->
+    <circle cx="370" cy="260" r="5" fill="#1a6fb5"/>
+    <text x="376" y="256" font-size="14" fill="#1a6fb5" font-style="italic">G&#x2081;</text>
+    <!-- r̂₁ -->
+    <line x1="370" y1="260" x2="428" y2="260" stroke="#1a6fb5" stroke-width="2.2" marker-end="url(#arr-blue)"/>
+    <text x="432" y="256" font-size="13" fill="#1a6fb5" font-style="italic">r&#x0302;&#x2081;</text>
+    <!-- t̂₁ (CCW in math = upward in SVG) -->
+    <line x1="370" y1="260" x2="370" y2="202" stroke="#c0392b" stroke-width="2.2" marker-end="url(#arr-red)"/>
+    <text x="375" y="196" font-size="13" fill="#c0392b" font-style="italic">t&#x0302;&#x2081;</text>
+    <!-- ψ₁ arc label -->
+    <text x="282" y="253" font-size="11.5" fill="#666" font-style="italic">&#x03C8;&#x2081;=0°</text>
+  </g>
+
+  <!-- ── Arm 2  ψ=120°  G=(175, 147) ── -->
+  <!--   r̂₂ math = (cos120, sin120) = (−0.5, 0.866)
+         r̂₂ SVG  = (−0.5, −0.866)   tip = (175−30, 147−52) = (145, 95)
+         t̂₂ SVG  = (r̂y, −r̂x) = (−0.866, 0.5)   tip = (175−52, 147+30) = (123, 177) -->
+  <g id="arm2">
+    <!-- spoke -->
+    <line x1="240" y1="260" x2="175" y2="147" stroke="#1a6fb5" stroke-width="0.9" stroke-dasharray="4,3"/>
+    <!-- G2 dot -->
+    <circle cx="175" cy="147" r="5" fill="#1a6fb5"/>
+    <text x="153" y="137" font-size="14" fill="#1a6fb5" font-style="italic">G&#x2082;</text>
+    <!-- r̂₂ -->
+    <line x1="175" y1="147" x2="145" y2="95" stroke="#1a6fb5" stroke-width="2.2" marker-end="url(#arr-blue)"/>
+    <text x="128" y="88" font-size="13" fill="#1a6fb5" font-style="italic">r&#x0302;&#x2082;</text>
+    <!-- t̂₂ -->
+    <line x1="175" y1="147" x2="123" y2="177" stroke="#c0392b" stroke-width="2.2" marker-end="url(#arr-red)"/>
+    <text x="100" y="183" font-size="13" fill="#c0392b" font-style="italic">t&#x0302;&#x2082;</text>
+    <!-- ψ₂ arc (0° → 120°, radius 48, drawn CCW in math = CW in SVG sweep) -->
+    <path d="M 288,260 A 48,48 0 0,0 264,218" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="2,3"/>
+    <text x="300" y="222" font-size="11.5" fill="#666" font-style="italic">&#x03C8;&#x2082;=120°</text>
+  </g>
+
+  <!-- ── Arm 3  ψ=240°  G=(175, 373) ── -->
+  <!--   r̂₃ math = (cos240, sin240) = (−0.5, −0.866)
+         r̂₃ SVG  = (−0.5, +0.866)   tip = (175−30, 373+52) = (145, 425)
+         t̂₃ SVG  = (r̂y, −r̂x) = (0.866, 0.5)    tip = (175+52, 373+30) = (227, 403) -->
+  <g id="arm3">
+    <!-- spoke -->
+    <line x1="240" y1="260" x2="175" y2="373" stroke="#1a6fb5" stroke-width="0.9" stroke-dasharray="4,3"/>
+    <!-- G3 dot -->
+    <circle cx="175" cy="373" r="5" fill="#1a6fb5"/>
+    <text x="153" y="390" font-size="14" fill="#1a6fb5" font-style="italic">G&#x2083;</text>
+    <!-- r̂₃ -->
+    <line x1="175" y1="373" x2="145" y2="425" stroke="#1a6fb5" stroke-width="2.2" marker-end="url(#arr-blue)"/>
+    <text x="128" y="442" font-size="13" fill="#1a6fb5" font-style="italic">r&#x0302;&#x2083;</text>
+    <!-- t̂₃ -->
+    <line x1="175" y1="373" x2="227" y2="403" stroke="#c0392b" stroke-width="2.2" marker-end="url(#arr-red)"/>
+    <text x="228" y="420" font-size="13" fill="#c0392b" font-style="italic">t&#x0302;&#x2083;</text>
+    <!-- ψ₃ arc (0° → 240°, large arc, radius 48) -->
+    <path d="M 288,260 A 48,48 0 1,0 264,302" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="2,3"/>
+    <text x="300" y="308" font-size="11.5" fill="#666" font-style="italic">&#x03C8;&#x2083;=240°</text>
+  </g>
+
+  <!-- ══ 90° angle box for arm 1 (r̂₁ ⊥ t̂₁) ══ -->
+  <rect x="370" y="252" width="8" height="8" fill="none" stroke="#888" stroke-width="1"/>
+
+  <!-- ══ Legend ══ -->
+  <g transform="translate(348,310)">
+    <rect x="0" y="0" width="152" height="78" rx="5" fill="white" stroke="#ccc" stroke-width="1"/>
+    <line x1="10" y1="20" x2="38" y2="20" stroke="#1a6fb5" stroke-width="2.2" marker-end="url(#arr-blue)"/>
+    <text x="44" y="24" font-size="12" fill="#333" font-style="italic">r&#x0302;&#x1D62; — radial (outward)</text>
+    <line x1="10" y1="44" x2="38" y2="44" stroke="#c0392b" stroke-width="2.2" marker-end="url(#arr-red)"/>
+    <text x="44" y="48" font-size="12" fill="#333" font-style="italic">t&#x0302;&#x1D62; — tangential (CCW)</text>
+    <circle cx="20" cy="66" r="4.5" fill="#1a6fb5"/>
+    <text x="30" y="70" font-size="12" fill="#333" font-style="italic">G&#x1D62; — ground point</text>
+  </g>
+
+  <!-- ══ Relation footer ══ -->
+  <text x="240" y="461" text-anchor="middle" font-size="12.5" fill="#555" font-style="italic">
+    t&#x0302;&#x1D62; = ẑ &#xD7; r&#x0302;&#x1D62;,   &#x03C8;&#x1D62; = 2&#x03C0;(i&#x2212;1)/3
+  </text>
+
+</svg>

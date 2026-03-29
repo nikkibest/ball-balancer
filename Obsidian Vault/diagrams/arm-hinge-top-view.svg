@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="300" viewBox="-20 -20 460 300"
+     font-family="'Latin Modern Math','STIX Two Math','Cambria Math',serif">
+  <defs>
+    <filter id="glow-blue" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-red" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-green" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-dot" x="-100%" y="-100%" width="400%" height="400%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="bg" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#1a1f2e"/>
+      <stop offset="100%" stop-color="#0d1017"/>
+    </radialGradient>
+    <marker id="arr-b" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L10,3.5z" fill="#38bdf8"/>
+    </marker>
+    <marker id="arr-r" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L10,3.5z" fill="#f87171"/>
+    </marker>
+    <marker id="arr-g" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L0,7 L10,3.5z" fill="#4ade80"/>
+    </marker>
+    <style>
+      .draw-r { stroke-dasharray:90 90; stroke-dashoffset:90; animation:draw 0.5s ease-out 0.3s forwards; }
+      .draw-t { stroke-dasharray:80 80; stroke-dashoffset:80; animation:draw 0.5s ease-out 0.6s forwards; }
+      .draw-p { stroke-dasharray:140 140; stroke-dashoffset:140; animation:draw 0.6s ease-out 0.9s forwards; }
+      .draw-rg { stroke-dasharray:90 90; stroke-dashoffset:90; animation:draw 0.5s ease-out 0.3s forwards;
+                 animation-name:draw; opacity:0.28; }
+      .draw-tg { stroke-dasharray:80 80; stroke-dashoffset:80; animation:draw 0.5s ease-out 0.6s forwards;
+                 animation-name:draw; opacity:0.22; }
+      @keyframes draw { to { stroke-dashoffset:0; } }
+      .pop { transform-origin:center; transform-box:fill-box; transform:scale(0); opacity:0;
+             animation:pop 0.35s cubic-bezier(0.34,1.56,0.64,1) 0.2s forwards; }
+      @keyframes pop { to { transform:scale(1); opacity:1; } }
+      .lbl { opacity:0; animation:fade 0.3s ease forwards; }
+      .l0 { animation-delay:0.25s; } .l1 { animation-delay:0.8s; }
+      .l2 { animation-delay:1.0s; } .l3 { animation-delay:1.4s; }
+      .l4 { animation-delay:1.6s; } .l5 { animation-delay:1.9s; }
+      @keyframes fade { to { opacity:1; } }
+      .pulse-b { animation:draw 0.5s ease-out 0.3s forwards, pb 2.4s ease-in-out 0.8s infinite; }
+      .pulse-r { animation:draw 0.5s ease-out 0.6s forwards, pr 2.4s ease-in-out 1.1s infinite; }
+      @keyframes pb { 0%,100%{opacity:0.28} 50%{opacity:0.55} }
+      @keyframes pr { 0%,100%{opacity:0.22} 50%{opacity:0.50} }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect x="-20" y="-20" width="460" height="300" fill="url(#bg)" rx="10"/>
+
+  <!-- Grid -->
+  <g stroke="#ffffff07" stroke-width="1">
+    <line x1="-20" y1="-20" x2="-20" y2="280"/><line x1="20" y1="-20" x2="20" y2="280"/>
+    <line x1="60" y1="-20" x2="60" y2="280"/><line x1="100" y1="-20" x2="100" y2="280"/>
+    <line x1="140" y1="-20" x2="140" y2="280"/><line x1="180" y1="-20" x2="180" y2="280"/>
+    <line x1="220" y1="-20" x2="220" y2="280"/><line x1="260" y1="-20" x2="260" y2="280"/>
+    <line x1="300" y1="-20" x2="300" y2="280"/><line x1="340" y1="-20" x2="340" y2="280"/>
+    <line x1="380" y1="-20" x2="380" y2="280"/><line x1="420" y1="-20" x2="420" y2="280"/>
+    <line x1="-20" y1="20" x2="440" y2="20"/><line x1="-20" y1="60" x2="440" y2="60"/>
+    <line x1="-20" y1="100" x2="440" y2="100"/><line x1="-20" y1="140" x2="440" y2="140"/>
+    <line x1="-20" y1="180" x2="440" y2="180"/><line x1="-20" y1="220" x2="440" y2="220"/>
+    <line x1="-20" y1="260" x2="440" y2="260"/>
+  </g>
+
+  <!-- Title -->
+  <text x="210" y="14" text-anchor="middle" font-size="12.5" fill="#94a3b8" letter-spacing="0.6">
+    TOP-DOWN VIEW — ARM HINGE AXIS AT G&#x1D62;
+  </text>
+
+  <!-- ── G_i dot at (130, 140) ── -->
+  <circle cx="130" cy="140" r="16" fill="#38bdf8" opacity="0.1" filter="url(#glow-dot)"/>
+  <circle cx="130" cy="140" r="7" fill="#38bdf8" class="pop"/>
+  <text x="108" y="128" font-size="14" fill="#93c5fd" font-style="italic" class="lbl l0">G&#x1D62;</text>
+
+  <!-- r̂i arrow → right (+X) -->
+  <!-- glow -->
+  <line x1="130" y1="140" x2="218" y2="140" stroke="#38bdf8" stroke-width="5"
+        stroke-dasharray="90 90" stroke-dashoffset="90"
+        filter="url(#glow-blue)" class="pulse-b"/>
+  <!-- crisp -->
+  <line x1="130" y1="140" x2="218" y2="140" stroke="#38bdf8" stroke-width="2.5"
+        marker-end="url(#arr-b)" class="draw-r"/>
+  <text x="228" y="144" font-size="14" fill="#38bdf8" font-style="italic" class="lbl l1">r&#x0302;&#x1D62;</text>
+
+  <!-- t̂i arrow → up (−SVG-Y = +Y math) -->
+  <!-- glow -->
+  <line x1="130" y1="140" x2="130" y2="62" stroke="#f87171" stroke-width="5"
+        stroke-dasharray="80 80" stroke-dashoffset="80"
+        filter="url(#glow-red)" class="pulse-r"/>
+  <!-- crisp -->
+  <line x1="130" y1="140" x2="130" y2="62" stroke="#f87171" stroke-width="2.5"
+        marker-end="url(#arr-r)" class="draw-t"/>
+  <text x="136" y="54" font-size="14" fill="#f87171" font-style="italic" class="lbl l2">t&#x0302;&#x1D62;</text>
+
+  <!-- right-angle box -->
+  <rect x="130" y="132" width="8" height="8" fill="none" stroke="#475569" stroke-width="1.1"/>
+
+  <!-- Hinge axis label — positioned well left of the t̂i arrow, leader line points to the shaft -->
+  <text x="14" y="83" font-size="11.5" fill="#64748b" font-style="italic" class="lbl l2">hinge</text>
+  <text x="14" y="97" font-size="11.5" fill="#64748b" font-style="italic" class="lbl l2">axis</text>
+  <!-- leader: from label right-edge → midpoint of t̂i shaft -->
+  <line x1="56" y1="90" x2="118" y2="104" stroke="#475569" stroke-width="0.8" stroke-dasharray="2,2"/>
+
+  <!-- Radial plane polygon — drawn BEFORE the arrows so arrows render on top -->
+  <polygon points="130,140  310,140  326,110  146,110"
+           fill="#4ade8008" stroke="#4ade80" stroke-width="1.2" stroke-dasharray="4,3" opacity="0.6"/>
+  <polygon points="130,140  310,140  326,110  146,110"
+           fill="none" stroke="#4ade80" stroke-width="3" opacity="0.12" filter="url(#glow-green)"/>
+
+  <!-- Plane label: positioned in lower-right of the polygon, clear of all arrows -->
+  <text x="310" y="155" text-anchor="end" font-size="11.5" fill="#4ade80"
+        font-style="italic" opacity="0.85" class="lbl l3">radial plane</text>
+  <text x="310" y="169" text-anchor="end" font-size="10.5" fill="#4ade80"
+        opacity="0.65" class="lbl l3">(contains r&#x0302;&#x1D62; and &#x1D7A3;&#x302;)</text>
+
+  <!-- Depth / ẑ arrow from G obliquely upward-right -->
+  <line x1="130" y1="140" x2="146" y2="110" stroke="#4ade80" stroke-width="5"
+        stroke-dasharray="35 35" stroke-dashoffset="35"
+        opacity="0.2" filter="url(#glow-green)" class="draw-p"/>
+  <line x1="130" y1="140" x2="146" y2="110" stroke="#4ade80" stroke-width="1.8"
+        stroke-dasharray="35 35" stroke-dashoffset="35"
+        marker-end="url(#arr-g)" class="draw-p"/>
+  <!-- ẑ label offset left of the arrowhead tip to avoid overlap -->
+  <text x="104" y="104" font-size="11.5" fill="#4ade80" font-style="italic" class="lbl l4">ẑ</text>
+
+  <!-- "arm swings in this plane" annotation — moved to bottom-right, below the polygon -->
+  <path d="M 290,195 Q 310,180 310,148" fill="none" stroke="#475569" stroke-width="0.9" stroke-dasharray="2,2"/>
+  <text x="248" y="208" font-size="11" fill="#64748b" font-style="italic" class="lbl l5">arm swings</text>
+  <text x="248" y="222" font-size="11" fill="#64748b" font-style="italic" class="lbl l5">within this plane</text>
+
+  <!-- Legend -->
+  <g transform="translate(295,32)">
+    <rect x="0" y="0" width="138" height="80" rx="5" fill="#0c1220" stroke="#2d3f55" stroke-width="1"/>
+    <line x1="10" y1="20" x2="38" y2="20" stroke="#38bdf8" stroke-width="2.5" marker-end="url(#arr-b)" filter="url(#glow-blue)"/>
+    <text x="44" y="24" font-size="11.5" fill="#38bdf8" font-style="italic">r&#x0302;&#x1D62; — radial</text>
+    <line x1="10" y1="44" x2="38" y2="44" stroke="#f87171" stroke-width="2.5" marker-end="url(#arr-r)" filter="url(#glow-red)"/>
+    <text x="44" y="48" font-size="11.5" fill="#f87171" font-style="italic">t&#x0302;&#x1D62; — tangential</text>
+    <line x1="10" y1="68" x2="38" y2="68" stroke="#4ade80" stroke-width="1.8" stroke-dasharray="4,3" opacity="0.7"/>
+    <text x="44" y="72" font-size="11.5" fill="#4ade80" font-style="italic">radial plane</text>
+  </g>
+
+  <!-- Footer -->
+  <text x="210" y="265" text-anchor="middle" font-size="12" fill="#7a9bbf" font-style="italic">
+    Hinge axis &#x2225; t&#x0302;&#x1D62; — lower link swings only within the radial plane
+  </text>
+</svg>

@@ -1,0 +1,228 @@
+{
+  "main": {
+    "id": "5d87fbf8ad06d212",
+    "type": "split",
+    "children": [
+      {
+        "id": "8d9166a8fcff2deb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5678abbd8b70961e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Table Dynamics Equations - Ball Balancing System.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Table Dynamics Equations - Ball Balancing System"
+            }
+          },
+          {
+            "id": "bcdd3a5919429b33",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.12.7"
+              },
+              "icon": "lucide-book-up",
+              "title": "Release Notes 1.12.7"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "55fa7d3c8ec67e47",
+    "type": "split",
+    "children": [
+      {
+        "id": "ee84e890c7063ec9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3e9f64a6ee285d24",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "549b0085afe147e9",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "42d7f155b1bbf483",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "37d880e6f9d28899",
+    "type": "split",
+    "children": [
+      {
+        "id": "731518841f6ce8c8",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "07ca61bcdfdf2eae",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "754061b52b3f820b",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "907840d2bb71ef41",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "c1b2844a9c0a3378",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "fc3b04d5e8a14646",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "549b0085afe147e9",
+  "lastOpenFiles": [
+    "Untitled",
+    "Welcome.md",
+    "Table Dynamics Equations - Ball Balancing System.md",
+    "Untitled.base",
+    "Untitled.canvas",
+    "2026-03-25.md",
+    "Own notes on Table Dynamics Equations - Determined from Geometry.md",
+    "Own notes on Table Dynamics Equations - Determined from Geometry.md.tmp.5493.1773689966314",
+    "test-diagram.svg",
+    "Table Dynamics Equations - Ball Balancing System.md.tmp.63446.1772921621971",
+    "Table Dynamics Equations - Ball Balancing System.md.tmp.63446.1772921176184",
+    "diagrams/youtube-model-single-arm-xz.svg",
+    "diagrams/youtube-model-single-arm-xz.svg.tmp.63446.1772921114786",
+    "diagrams/arm-3d-offset-view.svg.tmp.34234.1772920768617",
+    "diagrams/arm-3d-offset-view.svg.tmp.34234.1772920765087",
+    "diagrams/arm-3d-offset-view.svg.tmp.34234.1772920760523",
+    "diagrams/arm-3d-offset-view.svg.tmp.34234.1772920750877",
+    "diagrams/arm-3d-offset-view.svg.tmp.34234.1772920471010",
+    "diagrams/arm-3d-offset-view.svg",
+    "diagrams/arm-side-view-radial-plane.svg",
+    "diagrams/arm-hinge-top-view.svg",
+    "Ball Dynamics Equations - Ball Balancing System.md",
+    "diagrams/arm-ground-geometry-top-view.svg",
+    "CLAUDE.md",
+    "screenshot-2026-02-22_18-25-57.png",
+    "screenshot-2026-02-20_23-47-16.png",
+    "screenshot-2026-02-20_23-41-07.png",
+    "Pasted image 20260222182603.png"
+  ]
+}
